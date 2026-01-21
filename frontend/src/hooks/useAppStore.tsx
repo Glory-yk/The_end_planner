@@ -250,8 +250,15 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
             console.log('[Calendar] Calling calendarApi.sync()...');
             await calendarApi.sync();
             console.log('[Calendar] Calling calendarApi.getAll()...');
-            const events = await calendarApi.getAll();
-            console.log('[Calendar] Got events:', events);
+            // Fetch for the whole year to ensure visibility
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
+            const endOfYear = new Date(now.getFullYear(), 11, 31).toISOString();
+            const events = await calendarApi.getAll(startOfYear, endOfYear);
+            console.log(`[Calendar] Got ${events.length} events`);
+            if (events.length > 0) {
+                console.log('Sample event:', events[0]);
+            }
             setGoogleEvents(events);
             await refreshTasks();
         } catch (err) {
@@ -325,6 +332,9 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                     return newData;
                 });
             }
+
+            // Sync with Google Calendar after adding task
+            syncWithGoogleCalendar();
 
             return newTask.id;
         } catch (err) {
