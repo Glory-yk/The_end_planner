@@ -125,7 +125,15 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
             try {
                 // Try to load from server
                 const serverData = await mandalartApi.get();
-                if (serverData && serverData.length > 0) {
+                console.log('Server returned mandalart data:', serverData?.length, 'grids');
+
+                // Check if server data has meaningful content (not just empty shells)
+                const hasContent = serverData && serverData.length > 0 &&
+                    serverData.some((grid: MandalartData[number]) =>
+                        grid.cells && grid.cells.some((cell: string) => cell && cell.trim() !== '')
+                    );
+
+                if (hasContent) {
                     // Migration: ensure cellTodos exists
                     const migratedData = serverData.map((grid: MandalartData[number]) => ({
                         ...grid,
@@ -138,9 +146,11 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                     setMandalartData(migratedData);
                     // Also save to localStorage as cache
                     localStorage.setItem(MANDALART_STORAGE_KEY, JSON.stringify(migratedData));
-                    console.log('Mandalart loaded from server');
+                    console.log('Mandalart loaded from server with content');
                     isInitialLoad.current = false;
                     return;
+                } else {
+                    console.log('Server data is empty or has no content, will try localStorage');
                 }
             } catch (err) {
                 console.log('Server mandalart not available, trying localStorage:', err);
