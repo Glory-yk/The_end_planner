@@ -196,6 +196,12 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         mandalartSyncTimer.current = setTimeout(async () => {
             try {
                 setMandalartSyncing(true);
+                console.log('Syncing Mandalart data, length:', mandalartData.length, 'sample:', JSON.stringify(mandalartData).slice(0, 100));
+                if (mandalartData.length === 0) {
+                    console.warn('Skipping sync: mandalartData is empty');
+                    setMandalartSyncing(false);
+                    return;
+                }
                 await mandalartApi.update(mandalartData);
                 console.log('Mandalart synced to server');
             } catch (err) {
