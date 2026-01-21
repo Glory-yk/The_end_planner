@@ -10,7 +10,7 @@ interface DateHeaderProps {
     viewMode?: ViewMode;
 }
 
-export const DateHeader = ({ selectedDate, onDateChange, viewMode = 'list' }: DateHeaderProps) => {
+export const DateHeader = ({ selectedDate, onDateChange, viewMode = 'today' }: DateHeaderProps) => {
     const { primaryColor } = useTheme();
     const isWeekMode = viewMode === 'week';
 
