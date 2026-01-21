@@ -1,3 +1,4 @@
+// v4: Enforce lenient input and strict save logic
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock } from 'lucide-react';
