@@ -52,6 +52,7 @@ const AppContent = () => {
     toggleTask,
     deleteTask,
     updateTaskTime,
+    editTask,
     tasks: allTasks,
     startTaskTimer,
     stopTaskTimer: storeStopTaskTimer,
@@ -306,8 +307,7 @@ const AppContent = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
         >
           <Hexagon className="w-4 h-4" />
-          <span className="hidden sm:inline"></span>
-        </button>
+          <span className="hidden sm:inline">목표에서 추가</span></button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -325,6 +325,7 @@ const AppContent = () => {
               onToggle={toggleTask}
               onDelete={deleteTask}
               onUpdateTime={updateTaskTime}
+              onEdit={editTask}
               onStartTimer={handleStartTaskTimer}
               activeTimerTaskId={pomodoro.currentTaskId}
             />

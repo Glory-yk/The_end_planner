@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Clock, Trash2, CalendarClock, Play, Timer } from 'lucide-react';
+import { Check, Clock, Trash2, CalendarClock, Play, Timer, Pencil, X } from 'lucide-react';
 import clsx from 'clsx';
 import { Task } from '@/types/task';
 import { DEFAULT_CATEGORIES } from '@/types/mandalart';
@@ -13,11 +13,141 @@ interface TaskListProps {
     onDelete: (id: string) => void;
     onUpdateTime?: (id: string, time: string | undefined) => void;
     onStartTimer?: (taskId: string, taskTitle: string) => void;
+    onEdit?: (id: string, updates: { title: string; description?: string; duration?: number }) => void;
     activeTimerTaskId?: string | null;
 }
 
-export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer, activeTimerTaskId }: TaskListProps) => {
+// Edit Modal Component
+const EditTaskModal = ({
+    isOpen,
+    task,
+    onClose,
+    onSave
+}: {
+    isOpen: boolean;
+    task: Task | null;
+    onClose: () => void;
+    onSave: (updates: { title: string; description?: string; duration?: number }) => void;
+}) => {
+    const [title, setTitle] = useState(task?.title || '');
+    const [description, setDescription] = useState(task?.description || '');
+    const [duration, setDuration] = useState(task?.duration?.toString() || '');
+
+    // Reset form when task changes
+    useEffect(() => {
+        if (task) {
+            setTitle(task.title);
+            setDescription(task.description || '');
+            setDuration(task.duration?.toString() || '');
+        }
+    }, [task]);
+
+    const handleSave = () => {
+        if (title.trim()) {
+            onSave({
+                title: title.trim(),
+                description: description.trim() || undefined,
+                duration: duration ? parseInt(duration) : undefined
+            });
+            onClose();
+        }
+    };
+
+    if (!isOpen || !task) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onClose}
+            >
+                <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-xl"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">할일 수정</h3>
+                        <button
+                            onClick={onClose}
+                            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            <X className="w-5 h-5 text-gray-500 dark:text-slate-400" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                제목
+                            </label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                                placeholder="할일 제목"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                설명 (선택)
+                            </label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
+                                placeholder="상세 설명"
+                                rows={3}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                예상 소요시간 (분)
+                            </label>
+                            <input
+                                type="number"
+                                value={duration}
+                                onChange={(e) => setDuration(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                                placeholder="예: 30"
+                                min="1"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!title.trim()}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            저장
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
+export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer, onEdit, activeTimerTaskId }: TaskListProps) => {
     const [timePickerTask, setTimePickerTask] = useState<Task | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
     const { mandalartData } = useAppStore();
 
     const getCategoryColor = (gridIndex: number): string => {
@@ -48,6 +178,13 @@ export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer
             onUpdateTime(timePickerTask.id, undefined);
         }
         setTimePickerTask(null);
+    };
+
+    const handleEditSave = (updates: { title: string; description?: string; duration?: number }) => {
+        if (editingTask && onEdit) {
+            onEdit(editingTask.id, updates);
+        }
+        setEditingTask(null);
     };
 
     return (
@@ -191,16 +328,28 @@ export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer
                                                     ? "text-primary bg-primary/10 hover:bg-primary/20"
                                                     : "text-gray-400 hover:text-primary hover:bg-primary/10 dark:text-slate-400 dark:hover:text-white"
                                             )}
-                                            title="Set Time"
+                                            title="시간 설정"
                                         >
                                             <CalendarClock className="w-4 h-4" />
+                                        </button>
+                                    )}
+
+                                    {/* Edit Button */}
+                                    {onEdit && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingTask(task)}
+                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                            title="수정"
+                                        >
+                                            <Pencil className="w-4 h-4" />
                                         </button>
                                     )}
 
                                     <button
                                         onClick={() => onDelete(task.id)}
                                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete"
+                                        title="삭제"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -220,6 +369,15 @@ export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer
                 onConfirm={handleTimeConfirm}
                 onClear={handleTimeClear}
             />
+
+            {/* Edit Task Modal */}
+            <EditTaskModal
+                isOpen={!!editingTask}
+                task={editingTask}
+                onClose={() => setEditingTask(null)}
+                onSave={handleEditSave}
+            />
         </>
     );
 };
+

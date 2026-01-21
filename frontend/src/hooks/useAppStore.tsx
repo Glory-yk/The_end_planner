@@ -40,6 +40,7 @@ interface AppStoreContextType {
     getTasksForDate: (date: Date) => Task[];
     getLinkedTasks: (gridIndex: number, cellIndex: number) => Task[];
     updateTaskTime: (taskId: string, startTime: string | undefined) => void;
+    editTask: (taskId: string, updates: { title?: string; description?: string; duration?: number }) => void;
     refreshTasks: () => Promise<void>;
 
     // Timer
@@ -362,6 +363,21 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         } catch (err) {
             console.error('Failed to update task time:', err);
             // Revert would need original value, skip for now
+        }
+    };
+
+    const editTask = async (taskId: string, updates: { title?: string; description?: string; duration?: number }) => {
+        // Optimistic update
+        setTasks(prev => prev.map(t =>
+            t.id === taskId ? { ...t, ...updates } : t
+        ));
+
+        try {
+            await taskApi.update(taskId, updates);
+        } catch (err) {
+            console.error('Failed to edit task:', err);
+            // Refresh to revert on error
+            refreshTasks();
         }
     };
 
@@ -744,6 +760,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         getTasksForDate,
         getLinkedTasks,
         updateTaskTime,
+        editTask,
         refreshTasks,
         // Timer
         activeTimerTaskId,
