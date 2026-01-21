@@ -640,10 +640,21 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
     const syncWearSession = useCallback(async (session: WearTimerSession): Promise<Task | null> => {
         try {
             console.log('Syncing wear session:', session);
+
+            // Galaxy Watch sends UTC time, add 9 hours for Korea Standard Time (KST)
+            const KST_OFFSET_MS = 9 * 60 * 60 * 1000; // 9 hours in milliseconds
+            const adjustedStartTime = session.startTimeMillis + KST_OFFSET_MS;
+            const adjustedEndTime = session.endTimeMillis + KST_OFFSET_MS;
+
+            console.log('Adjusted times (KST):', {
+                original: { start: new Date(session.startTimeMillis).toISOString(), end: new Date(session.endTimeMillis).toISOString() },
+                adjusted: { start: new Date(adjustedStartTime).toISOString(), end: new Date(adjustedEndTime).toISOString() }
+            });
+
             const newTask = await taskApi.syncWearSession({
                 title: session.title,
-                startTimeMillis: session.startTimeMillis,
-                endTimeMillis: session.endTimeMillis,
+                startTimeMillis: adjustedStartTime,
+                endTimeMillis: adjustedEndTime,
                 durationMinutes: session.durationMinutes,
                 taskId: session.taskId
             });
