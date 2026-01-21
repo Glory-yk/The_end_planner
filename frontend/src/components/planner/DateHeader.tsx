@@ -1,5 +1,5 @@
 import { format, addDays, subDays, addWeeks, subWeeks, startOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ViewMode } from './ViewToggle';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,9 +8,10 @@ interface DateHeaderProps {
     selectedDate: Date;
     onDateChange: (date: Date) => void;
     viewMode?: ViewMode;
+    onSync?: () => void;
 }
 
-export const DateHeader = ({ selectedDate, onDateChange, viewMode = 'today' }: DateHeaderProps) => {
+export const DateHeader = ({ selectedDate, onDateChange, viewMode = 'today', onSync }: DateHeaderProps) => {
     const { primaryColor } = useTheme();
     const isWeekMode = viewMode === 'week';
 
@@ -75,6 +76,16 @@ export const DateHeader = ({ selectedDate, onDateChange, viewMode = 'today' }: D
             </div>
 
             <div className="flex items-center gap-1 bg-white rounded-xl p-1 shadow-sm border border-gray-100">
+                {onSync && (
+                    <button
+                        onClick={onSync}
+                        className="p-2 hover:bg-gray-50 text-gray-400 hover:text-primary rounded-lg transition-colors"
+                        title="Sync with Google Calendar"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                    </button>
+                )}
+                <div className="w-px h-5 bg-gray-200 mx-1" />
                 <button
                     onClick={handlePrev}
                     className="p-2 hover:bg-gray-50 text-gray-400 hover:text-primary rounded-lg transition-colors"

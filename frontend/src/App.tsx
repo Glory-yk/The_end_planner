@@ -57,7 +57,9 @@ const AppContent = () => {
     tasks: allTasks,
     startTaskTimer,
     stopTaskTimer: storeStopTaskTimer,
-    addFocusSession
+    storeStopTaskTimer,
+    addFocusSession,
+    syncWithGoogleCalendar
   } = useAppStore();
 
   // Pomodoro hook with task timer integration
@@ -290,6 +292,10 @@ const AppContent = () => {
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
         viewMode={viewMode}
+        onSync={async () => {
+          await syncWithGoogleCalendar();
+          alert('구글 캘린더와 동기화되었습니다.');
+        }}
       />
 
       {viewMode === 'today' && (
