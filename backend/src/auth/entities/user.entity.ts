@@ -25,6 +25,13 @@ export class User {
   @Column({ nullable: true, type: 'varchar' })
   picture: string | null;
 
+  // Google OAuth tokens for Calendar API
+  @Column({ nullable: true, type: 'text' })
+  googleAccessToken: string | null;
+
+  @Column({ nullable: true, type: 'text' })
+  googleRefreshToken: string | null;
+
   @OneToMany(() => Task, (task) => task.user)
   tasks: Task[];
 
@@ -34,3 +41,4 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+

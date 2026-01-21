@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 import client from '@/api/client';
 import { Task, FocusSession } from '@/types/task';
@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { taskApi, focusSessionApi } from '@/api/taskApi';
 import { mandalartApi } from '@/api/mandalartApi';
 import WearSync, { WearTimerSession } from '@/plugins/WearSyncPlugin';
+import { CalendarEvent, calendarApi } from '@/api/calendarApi';
 
 // ============================================
 // UNIFIED APP STORE
@@ -42,6 +43,7 @@ interface AppStoreContextType {
     updateTaskTime: (taskId: string, startTime: string | undefined) => void;
     editTask: (taskId: string, updates: { title?: string; description?: string; duration?: number }) => void;
     refreshTasks: () => Promise<void>;
+    syncWithGoogleCalendar: () => Promise<void>;
 
     // Timer
     activeTimerTaskId: string | null;
@@ -100,6 +102,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
     const [, setMandalartSyncing] = useState(false);
     const mandalartSyncTimer = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoad = useRef(true);
+    const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
 
     // Load tasks from API on mount
     const refreshTasks = useCallback(async () => {
@@ -239,6 +242,55 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         }
     }, [tasks]);
 
+    // Google Calendar Sync
+    const syncWithGoogleCalendar = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            await calendarApi.sync();
+            const events = await calendarApi.getAll();
+            setGoogleEvents(events);
+            await refreshTasks();
+        } catch (err) {
+            console.error('Failed to sync with Google Calendar:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [refreshTasks]);
+
+    // Merge DB tasks and Google Events
+    const allTasks = useMemo(() => {
+        const googleTasks = googleEvents
+            .filter(event => !tasks.some(t => t.googleEventId === event.id))
+            .map(event => {
+                let duration = undefined;
+                if (event.start.dateTime && event.end.dateTime) {
+                    const start = new Date(event.start.dateTime).getTime();
+                    const end = new Date(event.end.dateTime).getTime();
+                    duration = Math.round((end - start) / 60000);
+                }
+
+                return {
+                    id: `google-${event.id}`,
+                    title: event.summary,
+                    description: event.description || '',
+                    isCompleted: false,
+                    scheduledDate: event.start.date || (event.start.dateTime ? event.start.dateTime.split('T')[0] : null),
+                    startTime: event.start.dateTime ? format(new Date(event.start.dateTime), 'HH:mm') : undefined,
+                    duration,
+                    createdAt: new Date().toISOString(),
+                    googleEventId: event.id,
+                    userId: 'google-user',
+                    focusSessions: [],
+                } as Task;
+            });
+        return [...tasks, ...googleTasks];
+    }, [tasks, googleEvents]);
+
+    // Auto-sync on mount
+    useEffect(() => {
+        syncWithGoogleCalendar();
+    }, [syncWithGoogleCalendar]);
+
     // ============ TASK ACTIONS ============
 
     const addTask = async (
@@ -344,7 +396,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
 
     const getTasksForDate = (date: Date): Task[] => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        return tasks.filter(t => t.scheduledDate === dateStr);
+        return allTasks.filter(t => t.scheduledDate === dateStr);
     };
 
     const getLinkedTasks = (gridIndex: number, cellIndex: number): Task[] => {
@@ -762,7 +814,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
     };
 
     const value: AppStoreContextType = {
-        tasks,
+        tasks: allTasks,
+        syncWithGoogleCalendar,
         isLoading,
         error,
         addTask,

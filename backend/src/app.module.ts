@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { MandalartModule } from './mandalart/mandalart.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { Task } from './tasks/entities/task.entity';
 import { User } from './auth/entities/user.entity';
 import { FocusSession } from './tasks/entities/focus-session.entity';
@@ -65,6 +66,7 @@ import { AppController } from './app.controller';
     AuthModule,
     TasksModule,
     MandalartModule,
+    CalendarModule,
   ],
   controllers: [AppController],
 })

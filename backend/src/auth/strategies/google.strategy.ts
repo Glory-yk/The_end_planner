@@ -10,9 +10,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: configService.get<string>('GOOGLE_CLIENT_ID') || '',
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || '',
       callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL') || '',
-      scope: ['email', 'profile'],
+      scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar.events'],
       passReqToCallback: true,
-    });
+    } as any);
   }
 
   // Override authenticate to pass state parameter
@@ -37,6 +37,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       email: emails[0].value,
       name: name.givenName + ' ' + name.familyName,
       picture: photos[0]?.value,
+      // Include tokens for Calendar API access
+      accessToken,
+      refreshToken,
     };
     done(null, user);
   }

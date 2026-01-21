@@ -60,6 +60,10 @@ export class Task {
   @OneToMany(() => FocusSession, (session) => session.task)
   focusSessions: FocusSession[];
 
+  // Google Calendar Integration
+  @Column({ type: 'varchar', nullable: true })
+  googleEventId: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

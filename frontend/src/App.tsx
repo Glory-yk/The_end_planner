@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Hexagon, LogOut, Camera, CalendarRange } from 'lucide-react';
+import { Calendar, Hexagon, LogOut, Camera } from 'lucide-react';
 import { Routes, Route } from 'react-router-dom';
 import clsx from 'clsx';
 import { App as CapApp } from '@capacitor/app';
@@ -23,6 +23,7 @@ import { FocusQuote } from '@/components/planner/FocusQuote';
 import { ViewToggle, ViewMode } from '@/components/planner/ViewToggle';
 import { QuickAddModal } from '@/components/planner/QuickAddModal';
 import { TaskPickerModal } from '@/components/planner/TaskPickerModal';
+import { MonthlyCalendar } from '@/components/planner/MonthlyCalendar';
 import { WeeklyScheduleView } from '@/components/planner/WeeklyScheduleView';
 import { ScheduleAlertModal } from '@/components/planner/ScheduleAlertModal';
 import { useScheduleNotification } from '@/hooks/useScheduleNotification';
@@ -371,12 +372,15 @@ const AppContent = () => {
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Month view - Coming soon */}
-            <div className="px-6 py-12 text-center">
-              <CalendarRange className="w-16 h-16 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-500 dark:text-slate-400">월간 뷰</h3>
-              <p className="text-sm text-gray-400 dark:text-slate-500 mt-2">곧 추가될 예정입니다</p>
-            </div>
+            <MonthlyCalendar
+              currentDate={selectedDate}
+              tasks={allTasks}
+              onDateSelect={(date) => {
+                setSelectedDate(date);
+                setViewMode('today');
+              }}
+              onMonthChange={(date) => setSelectedDate(date)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

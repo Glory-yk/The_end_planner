@@ -33,6 +33,9 @@ export interface Task {
     gridIndex: number;  // Which sub-grid (0-8)
     cellIndex: number;  // Which cell within (0-8)
   };
+
+  // Google Calendar Integration
+  googleEventId?: string | null;
 }
 
 export type CreateTaskDto = Omit<Task, 'id' | 'createdAt' | 'isCompleted'>;

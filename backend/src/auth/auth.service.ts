@@ -9,6 +9,8 @@ interface GoogleUser {
   email: string;
   name: string;
   picture?: string;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 @Injectable()
@@ -17,7 +19,7 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateGoogleUser(googleUser: GoogleUser): Promise<User> {
     let user = await this.userRepository.findOne({
@@ -31,13 +33,22 @@ export class AuthService {
         email: googleUser.email,
         name: googleUser.name,
         picture: googleUser.picture,
+        googleAccessToken: googleUser.accessToken,
+        googleRefreshToken: googleUser.refreshToken,
       });
       await this.userRepository.save(user);
     } else {
-      // Update existing user info
+      // Update existing user info and tokens
       user.email = googleUser.email;
       user.name = googleUser.name;
       user.picture = googleUser.picture || null;
+      // Always update access token, only update refresh token if provided
+      if (googleUser.accessToken) {
+        user.googleAccessToken = googleUser.accessToken;
+      }
+      if (googleUser.refreshToken) {
+        user.googleRefreshToken = googleUser.refreshToken;
+      }
       await this.userRepository.save(user);
     }
 
@@ -53,3 +64,4 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 }
+
