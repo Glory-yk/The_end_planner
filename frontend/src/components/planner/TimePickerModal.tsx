@@ -52,7 +52,7 @@ export const TimePickerModal = ({
         const hNum = parseInt(h);
         const mNum = parseInt(m);
 
-        // Clamp values just in case
+        // Final clamp on confirm just to be safe
         const finalH = Math.min(23, Math.max(0, isNaN(hNum) ? 9 : hNum));
         const finalM = Math.min(59, Math.max(0, isNaN(mNum) ? 0 : mNum));
 
@@ -60,19 +60,29 @@ export const TimePickerModal = ({
     };
 
     const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value;
-        // 숫자만 허용
-        val = val.replace(/[^0-9]/g, '');
+        const raw = e.target.value.replace(/[^0-9]/g, '');
+        let val = raw;
 
-        // 길이가 2를 초과하면 마지막 2자리 또는 새로 입력된 값 처리 (선택된 상태에서 입력시 처리됨)
-        if (val.length > 2) val = val.slice(0, 2);
+        // Rolling logic: If length > 2, take the last 2 digits
+        // e.g., "09" + "1" -> "091" -> "91"
+        if (val.length > 2) {
+            val = val.slice(-2);
+        }
 
-        // 24 이상 입력 방지
-        if (parseInt(val) > 23) val = '23';
+        // Validate 24-hour range
+        const num = parseInt(val);
+        if (!isNaN(num) && num > 23) {
+            // If invalid (e.g. 25), and we have 2 digits, keep only the new digit
+            // e.g. "2" + "5" -> "25" -> "5"
+            // e.g. "09" + "3" -> "93" -> "3"
+            if (val.length === 2) {
+                val = val.slice(-1);
+            }
+        }
 
         setHour(val);
 
-        // 2글자 입력하면 자동으로 분으로 포커스 이동
+        // Auto-advance only if we have a valid 2-digit hour
         if (val.length === 2) {
             minuteInputRef.current?.focus();
             minuteInputRef.current?.select();
@@ -80,12 +90,19 @@ export const TimePickerModal = ({
     };
 
     const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value;
-        val = val.replace(/[^0-9]/g, '');
+        const raw = e.target.value.replace(/[^0-9]/g, '');
+        let val = raw;
 
-        if (val.length > 2) val = val.slice(0, 2);
+        if (val.length > 2) {
+            val = val.slice(-2);
+        }
 
-        if (parseInt(val) > 59) val = '59';
+        const num = parseInt(val);
+        if (!isNaN(num) && num > 59) {
+            if (val.length === 2) {
+                val = val.slice(-1);
+            }
+        }
 
         setMinute(val);
     };
