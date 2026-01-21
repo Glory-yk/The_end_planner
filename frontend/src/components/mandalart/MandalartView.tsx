@@ -611,11 +611,13 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col gap-2"
                         >
-                            <div className="shadow-2xl rounded-xl overflow-hidden flex-1 sm:flex-none">
+                            <div className="shadow-2xl rounded-xl overflow-hidden flex-1 sm:flex-none sm:h-[450px]">
                                 <EmojiPicker
                                     onEmojiClick={handleEmojiClick}
                                     skinTonesDisabled
+                                    searchDisabled={false}
                                     searchPlaceholder="이모지 검색..."
+                                    lazyLoadEmojis={true}
                                     width="100%"
                                     height="100%"
                                 />
