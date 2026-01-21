@@ -200,6 +200,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                 console.log('Mandalart synced to server');
             } catch (err) {
                 console.error('Failed to sync mandalart to server:', err);
+                // Temporary: Alert the user so they know save failed
+                alert('Mandalart 저장 실패! 데이터가 커서 저장되지 않았을 수 있습니다. 관리자에게 문의하세요.');
             } finally {
                 setMandalartSyncing(false);
             }
