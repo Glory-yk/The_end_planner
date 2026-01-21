@@ -9,7 +9,7 @@ export class MandalartService {
   constructor(
     @InjectRepository(Mandalart)
     private mandalartRepository: Repository<Mandalart>,
-  ) {}
+  ) { }
 
   // Create initial empty mandalart data
   private createInitialData(): MandalartGridData[] {
@@ -65,6 +65,15 @@ export class MandalartService {
       });
     } else {
       mandalart.data = JSON.stringify(updateDto.data);
+    }
+
+    console.log(`[Service] Saving mandalart for ${userId}. Data length: ${mandalart.data.length}`);
+    if (updateDto.data && updateDto.data.length > 0) {
+      // Safe logging of first item
+      const firstItem = updateDto.data[0];
+      console.log(`[Service] First grid title: ${firstItem['title'] || 'N/A'}, cells: ${JSON.stringify(firstItem['cells'] || []).slice(0, 50)}...`);
+    } else {
+      console.warn(`[Service] WARNING: Saving empty or null data!`);
     }
 
     await this.mandalartRepository.save(mandalart);
