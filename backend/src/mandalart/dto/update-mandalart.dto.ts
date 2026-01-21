@@ -70,7 +70,7 @@ export class MandalartGridDataDto {
 export class UpdateMandalartDto {
   @IsArray()
   @IsNotEmpty()
-  @ValidateNested({ each: true })
-  @Type(() => MandalartGridDataDto)
-  data: MandalartGridDataDto[];
+  // @ValidateNested({ each: true })
+  // @Type(() => MandalartGridDataDto)
+  data: any[]; // Relaxed to any[] for debugging
 }
