@@ -28,26 +28,46 @@ export const TimePickerModal = ({
     useEffect(() => {
         if (isOpen) {
             const [h, m] = (currentTime || '09:00').split(':');
-            setHour(h);
-            setMinute(m);
-            // 모달이 열릴 때 시 입력창에 포커스
-            setTimeout(() => hourInputRef.current?.focus(), 100);
+            setHour(h.padStart(2, '0'));
+            setMinute(m.padStart(2, '0'));
+            // 모달이 열릴 때 시 입력창에 포커스 및 전체 선택
+            setTimeout(() => {
+                if (hourInputRef.current) {
+                    hourInputRef.current.focus();
+                    hourInputRef.current.select();
+                }
+            }, 100);
         }
     }, [isOpen, currentTime]);
 
     const handleConfirm = () => {
         // 빈 값일 경우 기본값 처리
-        const h = hour.padStart(2, '0') || '09';
-        const m = minute.padStart(2, '0') || '00';
-        onConfirm(`${h}:${m}`);
+        let h = hour;
+        let m = minute;
+
+        // Ensure numeric and padding
+        if (!h) h = '09';
+        if (!m) m = '00';
+
+        const hNum = parseInt(h);
+        const mNum = parseInt(m);
+
+        // Clamp values just in case
+        const finalH = Math.min(23, Math.max(0, isNaN(hNum) ? 9 : hNum));
+        const finalM = Math.min(59, Math.max(0, isNaN(mNum) ? 0 : mNum));
+
+        onConfirm(`${finalH.toString().padStart(2, '0')}:${finalM.toString().padStart(2, '0')}`);
     };
 
     const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value;
-        // 숫자만 허용 (최대 2글자)
-        val = val.replace(/[^0-9]/g, '').slice(0, 2);
+        // 숫자만 허용
+        val = val.replace(/[^0-9]/g, '');
 
-        // 24 이상 입력 방지 로직 (선택사항, UX에 따라 다름)
+        // 길이가 2를 초과하면 마지막 2자리 또는 새로 입력된 값 처리 (선택된 상태에서 입력시 처리됨)
+        if (val.length > 2) val = val.slice(0, 2);
+
+        // 24 이상 입력 방지
         if (parseInt(val) > 23) val = '23';
 
         setHour(val);
@@ -55,33 +75,34 @@ export const TimePickerModal = ({
         // 2글자 입력하면 자동으로 분으로 포커스 이동
         if (val.length === 2) {
             minuteInputRef.current?.focus();
+            minuteInputRef.current?.select();
         }
     };
 
     const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value;
-        val = val.replace(/[^0-9]/g, '').slice(0, 2);
+        val = val.replace(/[^0-9]/g, '');
+
+        if (val.length > 2) val = val.slice(0, 2);
 
         if (parseInt(val) > 59) val = '59';
-
 
         setMinute(val);
     };
 
     const handleHourBlur = () => {
-        if (hour === '') return;
-        let h = parseInt(hour || '0');
+        if (!hour) return;
+        let h = parseInt(hour);
+        if (isNaN(h)) h = 0;
         if (h > 23) h = 23;
         setHour(h.toString().padStart(2, '0'));
     };
 
     const handleMinuteBlur = () => {
-        if (minute === '') return;
-        let m = parseInt(minute || '0');
+        if (!minute) return;
+        let m = parseInt(minute);
+        if (isNaN(m)) m = 0;
         if (m > 59) m = 59;
-        // 5분 단위 스냅 (원치 않으면 이 줄 제거) - 사용자가 5분 단위를 원했으므로 유지하되 입력은 자유롭게, blur시 보정? 
-        // 입력은 자유롭게 하고 화살표 키(step)로 5분 단위 제어를 하는게 나을 수 있음.
-        // 여기서는 단순 포맷팅만 수행
         setMinute(m.toString().padStart(2, '0'));
     };
 
@@ -95,7 +116,8 @@ export const TimePickerModal = ({
             } else {
                 const m = parseInt(minute || '0');
                 // 5분 단위 증가
-                setMinute(((m + 5) % 60).toString().padStart(2, '0'));
+                const nextM = Math.ceil((m + 1) / 5) * 5;
+                setMinute((nextM % 60).toString().padStart(2, '0'));
             }
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -105,11 +127,16 @@ export const TimePickerModal = ({
             } else {
                 const m = parseInt(minute || '0');
                 // 5분 단위 감소
-                setMinute((m - 5 < 0 ? 55 : m - 5).toString().padStart(2, '0'));
+                const prevM = Math.floor((m - 1) / 5) * 5;
+                setMinute((prevM < 0 ? 55 : prevM).toString().padStart(2, '0'));
             }
         } else if (e.key === 'Enter') {
             handleConfirm();
         }
+    };
+
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        e.target.select();
     };
 
     return (
@@ -133,7 +160,7 @@ export const TimePickerModal = ({
                         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-700">
                             <div className="flex items-center gap-2">
                                 <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                <span className="font-medium text-gray-900 dark:text-white font-sans">시간 설정</span>
+                                <span className="font-medium text-gray-900 dark:text-white font-sans">시간 설정 (24시간)</span>
                             </div>
                             <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-gray-500 dark:text-slate-400" />
@@ -155,6 +182,7 @@ export const TimePickerModal = ({
                                 onChange={handleHourChange}
                                 onBlur={handleHourBlur}
                                 onKeyDown={(e) => handleKeyDown(e, 'hour')}
+                                onFocus={handleFocus}
                                 placeholder="00"
                                 className="w-20 text-center text-5xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-700 focus:border-primary outline-none dark:text-white font-sans placeholder:text-gray-200"
                             />
@@ -167,6 +195,7 @@ export const TimePickerModal = ({
                                 onChange={handleMinuteChange}
                                 onBlur={handleMinuteBlur}
                                 onKeyDown={(e) => handleKeyDown(e, 'minute')}
+                                onFocus={handleFocus}
                                 placeholder="00"
                                 className="w-20 text-center text-5xl font-bold bg-transparent border-b-2 border-slate-200 dark:border-slate-700 focus:border-primary outline-none dark:text-white font-sans placeholder:text-gray-200"
                             />
