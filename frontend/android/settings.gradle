@@ -1,0 +1,9 @@
+include ':app'
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
+
+// Wear OS module
+include ':wear'
+project(':wear').projectDir = new File('../wear')
+
+apply from: 'capacitor.settings.gradle'

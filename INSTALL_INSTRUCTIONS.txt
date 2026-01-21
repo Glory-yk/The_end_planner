@@ -1,0 +1,8 @@
+# MandalaPlan Installation Instructions
+
+1. UNINSTALL the existing app from BOTH your Phone and Watch. This is crucial for the sync to work (Signature Mismatch Fix).
+2. Install `MandalaPlan-Mobile.apk` on your Phone.
+3. Install `MandalaPlan-Wear.apk` on your Watch.
+4. Open the Phone app first, then the Watch app.
+5. Watch app should show "Connected".
+6. Record a timer session on Watch and Stop to sync.

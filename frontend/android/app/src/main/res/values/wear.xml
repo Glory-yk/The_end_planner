@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Capability identifier for Wear OS device discovery -->
+    <!-- The Wear OS app will look for a device with this capability -->
+    <string-array name="android_wear_capabilities">
+        <item>mandalaplan_mobile_app</item>
+    </string-array>
+</resources>

@@ -1,0 +1,58 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "주간 뷰(Week View) 기능 추가",
+      "description": "사용자가 한 주의 태스크를 한눈에 볼 수 있는 주간 뷰 기능을 구현. 7일간의 태스크를 그리드 형태로 표시하고, 날짜 간 이동 및 태스크 관리가 가능하도록 함.",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "details": "## 구현 범위\n\n### 백엔드 (NestJS)\n1. 주간 태스크 조회 API 추가\n   - GET /tasks/week?startDate=YYYY-MM-DD\n   - 시작일로부터 7일간의 태스크를 반환\n\n### 프론트엔드 (React)\n1. WeekView 컴포넌트 개발\n   - 7일 그리드 레이아웃\n   - 주간 네비게이션 (이전주/이번주/다음주)\n   - 각 날짜별 태스크 목록 표시\n\n2. 뷰 전환 기능\n   - Daily View ↔ Week View 토글\n   - 헤더에 뷰 전환 버튼 추가\n\n3. 태스크 관리\n   - 주간 뷰에서 태스크 생성/수정/삭제\n   - 날짜 클릭 시 해당 날짜로 태스크 추가",
+      "testStrategy": "1. 주간 API 엔드포인트 테스트\n2. 주간 네비게이션 동작 확인\n3. 태스크 CRUD가 주간 뷰에서 정상 작동하는지 확인\n4. 반응형 레이아웃 테스트",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "백엔드: 주간 태스크 조회 API 추가",
+          "description": "GET /tasks/week?startDate=YYYY-MM-DD 엔드포인트 구현",
+          "status": "pending",
+          "dependencies": []
+        },
+        {
+          "id": 2,
+          "title": "프론트엔드: WeekView 컴포넌트 생성",
+          "description": "7일 그리드 레이아웃의 주간 뷰 컴포넌트 개발",
+          "status": "pending",
+          "dependencies": [1]
+        },
+        {
+          "id": 3,
+          "title": "프론트엔드: 뷰 전환 기능 구현",
+          "description": "Daily View와 Week View 간 토글 기능 추가",
+          "status": "pending",
+          "dependencies": [2]
+        },
+        {
+          "id": 4,
+          "title": "프론트엔드: 주간 뷰 태스크 관리 기능",
+          "description": "주간 뷰에서 태스크 생성/수정/삭제 기능 연동",
+          "status": "pending",
+          "dependencies": [2]
+        },
+        {
+          "id": 5,
+          "title": "통합 테스트 및 UI 다듬기",
+          "description": "전체 기능 테스트 및 반응형 스타일링",
+          "status": "pending",
+          "dependencies": [3, 4]
+        }
+      ],
+      "createdAt": "2026-01-18T13:50:00.000Z",
+      "updatedAt": "2026-01-18T13:50:00.000Z"
+    }
+  ],
+  "metadata": {
+    "projectName": "Daily Planner MVP",
+    "version": "1.1.0",
+    "lastUpdated": "2026-01-18T13:50:00.000Z"
+  }
+}

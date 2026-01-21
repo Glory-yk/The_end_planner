@@ -1,0 +1,199 @@
+# Ellie-like Daily Planner MVP
+## Product Requirements Document (PRD)
+### One-Day MVP Version
+
+---
+
+## Document Information
+
+| Item | Detail |
+|------|--------|
+| **Author** | GM |
+| **Date** | 2026-01-18 |
+| **Version** | 1.0 (MVP) |
+| **Target** | 1-Day Development (Working Prototype) |
+
+---
+
+## 1. Executive Summary
+
+A minimalist daily planning web application inspired by Ellie Planner. This MVP focuses on core task management features that can be completed in one day, providing immediate value for daily planning and task organization.
+
+---
+
+## 2. Goals & Objectives
+
+### Primary Goal
+Build a working daily planner prototype within one day that demonstrates core task management functionality.
+
+### Success Criteria
+- Users can create, read, update, and delete tasks
+- Tasks can be organized in a Brain Dump (inbox) and Daily Planner
+- Clean, minimalist UI that works on desktop browsers
+- Data persists in PostgreSQL database
+
+---
+
+## 3. Target Users
+
+- Individuals who need simple daily task management
+- People who get overwhelmed by complex productivity tools
+- Users familiar with time-blocking and daily planning concepts
+
+---
+
+## 4. MVP Scope (One-Day Development)
+
+### 4.1 In-Scope Features
+
+#### Core Task Management
+- Create tasks with title and description
+- Edit task details
+- Delete tasks
+- Mark tasks as complete/incomplete
+
+#### Brain Dump (Inbox)
+- Quick task entry area
+- View all unscheduled tasks
+- Move tasks to Daily Planner
+
+#### Daily Planner View
+- View today's tasks
+- Simple date navigation (Previous/Today/Next)
+- Tasks organized by scheduled date
+
+#### UI/UX
+- Clean, minimalist interface
+- Responsive design (desktop-first)
+- Two-panel layout: Brain Dump | Daily Planner
+
+### 4.2 Out-of-Scope (Future Versions)
+- User authentication and accounts
+- Drag & drop functionality
+- Time blocking / calendar view
+- Labels, tags, or categories
+- Subtasks
+- Recurring tasks
+- Calendar integrations (Google, Apple)
+- Mobile apps (iOS/Android)
+- Task time estimates
+- Kanban board view
+
+---
+
+## 5. Technical Architecture
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | NestJS (Node.js, TypeScript) |
+| **Database** | PostgreSQL with TypeORM |
+| **Frontend** | React (Vite) with TypeScript |
+| **Styling** | Tailwind CSS |
+
+### Database Schema (MVP)
+
+#### Tasks Table
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| title | VARCHAR | Task title (required) |
+| description | TEXT | Optional task details |
+| isCompleted | BOOLEAN | Task completion status |
+| scheduledDate | DATE | NULL = Brain Dump, Date = Daily Planner |
+| createdAt | TIMESTAMP | Auto-generated |
+| updatedAt | TIMESTAMP | Auto-updated |
+
+---
+
+## 6. API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /tasks | Get all tasks (optional query: ?date=YYYY-MM-DD) |
+| GET | /tasks/brain-dump | Get unscheduled tasks (scheduledDate is NULL) |
+| GET | /tasks/:id | Get single task by ID |
+| POST | /tasks | Create new task |
+| PATCH | /tasks/:id | Update task (title, description, isCompleted, scheduledDate) |
+| DELETE | /tasks/:id | Delete task |
+
+---
+
+## 7. UI Components & Layout
+
+### Main Layout
+Two-column layout (50/50 split on desktop)
+- Left Panel: Brain Dump (Inbox)
+- Right Panel: Daily Planner
+
+### Component List
+
+1. **Header**
+   - App title and logo
+
+2. **Brain Dump Panel**
+   - Quick add task input
+   - List of unscheduled tasks
+   - Schedule to today button for each task
+
+3. **Daily Planner Panel**
+   - Date header with navigation (Prev/Today/Next)
+   - List of tasks for selected date
+   - Add task button
+
+4. **Task Item Component**
+   - Checkbox (toggle completion)
+   - Task title (clickable to edit)
+   - Delete button
+
+5. **Task Edit Modal/Form**
+   - Title input
+   - Description textarea
+   - Date picker (optional)
+   - Save/Cancel buttons
+
+---
+
+## 8. Development Timeline (8 Hours)
+
+| Time | Phase | Tasks |
+|------|-------|-------|
+| 1 hour | Setup | Initialize NestJS, React (Vite), PostgreSQL, basic project structure |
+| 2 hours | Backend | Task entity, service, controller, all CRUD endpoints, database migrations |
+| 3 hours | Frontend | UI components, API integration, state management, basic styling |
+| 1.5 hours | Integration | Connect frontend to backend, test all features end-to-end |
+| 0.5 hours | Polish | Bug fixes, UI improvements, responsiveness |
+
+---
+
+## 9. Future Enhancements (v2.0+)
+
+### Phase 2 - Enhanced Planning (Week 2)
+- Drag & drop task reordering
+- Week view navigation
+- Task time estimates
+
+### Phase 3 - Advanced Features (Week 3-4)
+- Time blocking calendar view
+- Labels and categories
+- Subtasks
+- Recurring tasks
+
+### Phase 4 - Integration & Mobile (Month 2+)
+- Google Calendar integration
+- Apple Calendar integration
+- React Native mobile app
+- User authentication
+
+---
+
+## 10. Success Metrics for MVP
+
+- All CRUD operations working correctly
+- Tasks can move between Brain Dump and Daily Planner
+- Date navigation works properly
+- UI is clean and usable on desktop browsers
+- No critical bugs in core functionality
+- Application loads in under 2 seconds

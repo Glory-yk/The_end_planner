@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">The End Planner</string>
+    <string name="title_activity_main">The End Planner</string>
+    <string name="package_name">com.mandalaplan.app</string>
+    <string name="custom_url_scheme">com.mandalaplan.app</string>
+</resources>
