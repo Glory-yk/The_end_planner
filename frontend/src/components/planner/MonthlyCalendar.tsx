@@ -12,12 +12,12 @@ import {
     subMonths,
     isToday
 } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '@/types/task';
 import clsx from 'clsx';
-import { useTheme } from '@/contexts/ThemeContext';
+
 
 interface MonthlyCalendarProps {
     currentDate: Date;
@@ -32,7 +32,6 @@ export const MonthlyCalendar = ({
     onDateSelect,
     onMonthChange
 }: MonthlyCalendarProps) => {
-    const { primaryColor } = useTheme();
     const [monthDate, setMonthDate] = useState(currentDate);
 
     // Update internal state when prop changes
