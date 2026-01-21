@@ -57,7 +57,7 @@ const AppContent = () => {
     tasks: allTasks,
     startTaskTimer,
     stopTaskTimer: storeStopTaskTimer,
-    storeStopTaskTimer,
+
     addFocusSession,
     syncWithGoogleCalendar
   } = useAppStore();
