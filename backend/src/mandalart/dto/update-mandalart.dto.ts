@@ -2,15 +2,19 @@ import { IsArray, IsNotEmpty, IsNumber, IsString, IsOptional, IsBoolean, Validat
 import { Type } from 'class-transformer';
 
 export class MandalartTodoDto {
+  @IsOptional()
   @IsString()
   id: string;
 
+  @IsOptional()
   @IsString()
   text: string;
 
+  @IsOptional()
   @IsBoolean()
   isCompleted: boolean;
 
+  @IsOptional()
   @IsString()
   createdAt: string;
 
@@ -28,18 +32,22 @@ export class MandalartGridDataDto {
   @IsString()
   title: string;
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   cells: string[];
 
+  @IsOptional()
   @IsArray()
   @IsArray({ each: true })
   linkedTaskIds: string[][];
 
+  @IsOptional()
   @IsArray()
   @IsNumber({}, { each: true })
   cellProgress: number[];
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MandalartTodoDto)
