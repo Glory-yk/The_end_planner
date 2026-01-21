@@ -244,14 +244,18 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
 
     // Google Calendar Sync
     const syncWithGoogleCalendar = useCallback(async () => {
+        console.log('[Calendar] Starting Google Calendar sync...');
         try {
             setIsLoading(true);
+            console.log('[Calendar] Calling calendarApi.sync()...');
             await calendarApi.sync();
+            console.log('[Calendar] Calling calendarApi.getAll()...');
             const events = await calendarApi.getAll();
+            console.log('[Calendar] Got events:', events);
             setGoogleEvents(events);
             await refreshTasks();
         } catch (err) {
-            console.error('Failed to sync with Google Calendar:', err);
+            console.error('[Calendar] Failed to sync with Google Calendar:', err);
         } finally {
             setIsLoading(false);
         }
@@ -288,6 +292,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
 
     // Auto-sync on mount
     useEffect(() => {
+        console.log('[Calendar] Auto-sync useEffect triggered');
         syncWithGoogleCalendar();
     }, [syncWithGoogleCalendar]);
 

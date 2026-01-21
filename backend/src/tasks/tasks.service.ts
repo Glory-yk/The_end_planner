@@ -6,6 +6,7 @@ import { FocusSession } from './entities/focus-session.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { WearSessionDto } from './dto/wear-session.dto';
+import { CalendarService } from '../calendar/calendar.service';
 
 @Injectable()
 export class TasksService {
@@ -14,6 +15,7 @@ export class TasksService {
     private readonly taskRepository: Repository<Task>,
     @InjectRepository(FocusSession)
     private readonly focusSessionRepository: Repository<FocusSession>,
+    private readonly calendarService: CalendarService,
   ) { }
 
   async create(userId: string, createTaskDto: CreateTaskDto): Promise<Task> {
@@ -22,7 +24,26 @@ export class TasksService {
       userId,
       scheduledDate: createTaskDto.scheduledDate || null,
     });
-    return this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+
+    // Sync to Google Calendar if task has a scheduled date
+    if (savedTask.scheduledDate) {
+      try {
+        const eventId = await this.calendarService.syncTaskToCalendar(userId, {
+          title: savedTask.title,
+          scheduledDate: savedTask.scheduledDate,
+          startTime: savedTask.startTime || undefined,
+          duration: savedTask.duration || undefined,
+        });
+        savedTask.googleEventId = eventId;
+        await this.taskRepository.save(savedTask);
+      } catch (err) {
+        console.error('Failed to sync task to Google Calendar:', err);
+        // Don't fail the task creation if calendar sync fails
+      }
+    }
+
+    return savedTask;
   }
 
   async findAll(userId: string, date?: string): Promise<Task[]> {
@@ -98,11 +119,42 @@ export class TasksService {
   async update(userId: string, id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
     const task = await this.findOne(userId, id);
     Object.assign(task, updateTaskDto);
-    return this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+
+    // Sync to Google Calendar if task has a scheduled date
+    if (savedTask.scheduledDate) {
+      try {
+        const eventId = await this.calendarService.syncTaskToCalendar(userId, {
+          title: savedTask.title,
+          scheduledDate: savedTask.scheduledDate,
+          startTime: savedTask.startTime || undefined,
+          duration: savedTask.duration || undefined,
+          googleEventId: savedTask.googleEventId || undefined,
+        });
+        if (!savedTask.googleEventId) {
+          savedTask.googleEventId = eventId;
+          await this.taskRepository.save(savedTask);
+        }
+      } catch (err) {
+        console.error('Failed to sync task update to Google Calendar:', err);
+      }
+    }
+
+    return savedTask;
   }
 
   async remove(userId: string, id: string): Promise<void> {
     const task = await this.findOne(userId, id);
+
+    // Delete from Google Calendar if synced
+    if (task.googleEventId) {
+      try {
+        await this.calendarService.deleteEvent(userId, task.googleEventId);
+      } catch (err) {
+        console.error('Failed to delete event from Google Calendar:', err);
+      }
+    }
+
     await this.taskRepository.remove(task);
   }
 

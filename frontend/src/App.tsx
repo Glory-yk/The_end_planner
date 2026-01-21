@@ -292,14 +292,14 @@ const AppContent = () => {
         viewMode={viewMode}
       />
 
-      {viewMode !== 'week' && (
+      {viewMode === 'today' && (
         <WeekCalendar
           selectedDate={selectedDate}
           onDateSelect={setSelectedDate}
         />
       )}
 
-      {viewMode !== 'week' && <ProgressIndicator tasks={tasks} />}
+      {viewMode === 'today' && <ProgressIndicator tasks={tasks} />}
 
       <div className="flex items-center justify-between px-6 mb-2">
         <ViewToggle mode={viewMode} onChange={setViewMode} />

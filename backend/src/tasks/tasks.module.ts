@@ -6,9 +6,13 @@ import { Task } from './entities/task.entity';
 import { FocusSession } from './entities/focus-session.entity';
 import { FocusSessionController } from './focus-session.controller';
 import { FocusSessionService } from './focus-session.service';
+import { CalendarModule } from '../calendar/calendar.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, FocusSession])],
+  imports: [
+    TypeOrmModule.forFeature([Task, FocusSession]),
+    CalendarModule,
+  ],
   controllers: [TasksController, FocusSessionController],
   providers: [TasksService, FocusSessionService],
 })
