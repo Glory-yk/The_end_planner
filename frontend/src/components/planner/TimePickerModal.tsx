@@ -1,4 +1,3 @@
-// v4: Enforce lenient input and strict save logic
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock } from 'lucide-react';
@@ -20,66 +19,70 @@ export const TimePickerModal = ({
     onConfirm,
     onClear
 }: TimePickerModalProps) => {
-    // 입력 중 편의를 위해 문자열로 관리
     const [hour, setHour] = useState('');
     const [minute, setMinute] = useState('');
+
+    // Refs to track current value synchronously for Blur events
+    const hourValRef = useRef('');
+    const minuteValRef = useRef('');
+
     const hourInputRef = useRef<HTMLInputElement>(null);
     const minuteInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen) {
             const [h, m] = (currentTime || '09:00').split(':');
-            setHour(h.padStart(2, '0'));
-            setMinute(m.padStart(2, '0'));
-            // 모달이 열릴 때 시 입력창에 포커스 및 전체 선택
+            const paddedH = h.padStart(2, '0');
+            const paddedM = m.padStart(2, '0');
+
+            setHour(paddedH);
+            setMinute(paddedM);
+            hourValRef.current = paddedH;
+            minuteValRef.current = paddedM;
+
+            // Initial focus
             setTimeout(() => {
                 if (hourInputRef.current) {
                     hourInputRef.current.focus();
                     hourInputRef.current.select();
                 }
-            }, 100);
+            }, 50);
         }
     }, [isOpen, currentTime]);
 
-    const getClampedTime = (hStr: string, mStr: string) => {
-        let hNum = parseInt(hStr || '0');
-        let mNum = parseInt(mStr || '0');
-
-        if (isNaN(hNum)) hNum = 9;
-        if (isNaN(mNum)) mNum = 0;
-
-        const h = Math.min(23, Math.max(0, hNum));
-        const m = Math.min(59, Math.max(0, mNum));
-
-        return {
-            h: h.toString().padStart(2, '0'),
-            m: m.toString().padStart(2, '0')
-        };
-    };
-
     const handleConfirm = () => {
-        const { h, m } = getClampedTime(hour, minute);
+        let hVal = parseInt(hour || '0');
+        let mVal = parseInt(minute || '0');
+
+        if (isNaN(hVal)) hVal = 9;
+        if (isNaN(mVal)) mVal = 0;
+
+        const h = Math.min(23, Math.max(0, hVal)).toString().padStart(2, '0');
+        const m = Math.min(59, Math.max(0, mVal)).toString().padStart(2, '0');
+
         onConfirm(`${h}:${m}`);
     };
 
     const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value.replace(/[^0-9]/g, '');
 
+        // OVERWRITE Logic:
         if (val.length > 2) {
-            // If user types more, take the last 2 digits (rolling input style)
-            val = val.slice(-2);
+            val = val.slice(-1);
         }
 
-        // Allow entering any number (00-99) while typing.
-        // We do NOT clamp > 23 here, to avoid interaction issues.
-        // We only clamp on Blur or Confirm.
+        const num = parseInt(val);
+        if (!isNaN(num) && num > 23) {
+            val = val.slice(-1);
+        }
 
         setHour(val);
+        hourValRef.current = val;
 
-        // Auto-advance if 2 digits entered
-        if (val.length === 2 && minuteInputRef.current) {
-            minuteInputRef.current.focus();
-            minuteInputRef.current.select(); // Select all in minute for easy overwrite
+        // Auto-advance logic:
+        if (val.length === 2 && !isNaN(parseInt(val)) && parseInt(val) <= 23) {
+            minuteInputRef.current?.focus();
+            minuteInputRef.current?.select();
         }
     };
 
@@ -87,50 +90,75 @@ export const TimePickerModal = ({
         let val = e.target.value.replace(/[^0-9]/g, '');
 
         if (val.length > 2) {
-            val = val.slice(-2);
+            val = val.slice(-1);
         }
 
-        // Allow entering any number (00-99) while typing.
+        const num = parseInt(val);
+        if (!isNaN(num) && num > 59) {
+            val = val.slice(-1);
+        }
+
         setMinute(val);
+        minuteValRef.current = val;
     };
 
     const handleHourBlur = () => {
-        if (!hour) return;
-        const { h } = getClampedTime(hour, '0');
-        setHour(h);
+        // Use Ref for latest value to avoid stale state race condition
+        const currentVal = hourValRef.current;
+        if (!currentVal) return;
+
+        let h = parseInt(currentVal);
+        if (isNaN(h)) h = 0;
+        if (h > 23) h = 23;
+
+        const newVal = h.toString().padStart(2, '0');
+        setHour(newVal);
+        hourValRef.current = newVal;
     };
 
     const handleMinuteBlur = () => {
-        if (!minute) return;
-        const { m } = getClampedTime('0', minute);
-        setMinute(m);
+        const currentVal = minuteValRef.current;
+        if (!currentVal) return;
+
+        let m = parseInt(currentVal);
+        if (isNaN(m)) m = 0;
+        if (m > 59) m = 59;
+
+        const newVal = m.toString().padStart(2, '0');
+        setMinute(newVal);
+        minuteValRef.current = newVal;
     };
 
-    // 키보드 방향키 조작 지원
     const handleKeyDown = (e: React.KeyboardEvent, type: 'hour' | 'minute') => {
         if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (type === 'hour') {
                 const h = parseInt(hour || '0');
                 const nextH = isNaN(h) ? 0 : (h + 1) % 24;
-                setHour(nextH.toString().padStart(2, '0'));
+                const newVal = nextH.toString().padStart(2, '0');
+                setHour(newVal);
+                hourValRef.current = newVal;
             } else {
                 const m = parseInt(minute || '0');
-                // 5분 단위 증가
                 const nextM = Math.ceil(((isNaN(m) ? 0 : m) + 1) / 5) * 5;
-                setMinute((nextM % 60).toString().padStart(2, '0'));
+                const newVal = (nextM % 60).toString().padStart(2, '0');
+                setMinute(newVal);
+                minuteValRef.current = newVal;
             }
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (type === 'hour') {
                 const h = parseInt(hour || '0');
                 const prevH = isNaN(h) ? 23 : (h - 1 < 0 ? 23 : h - 1);
-                setHour(prevH.toString().padStart(2, '0'));
+                const newVal = prevH.toString().padStart(2, '0');
+                setHour(newVal);
+                hourValRef.current = newVal;
             } else {
                 const m = parseInt(minute || '0');
-                // 5분 단위 감소
                 const prevM = Math.floor(((isNaN(m) ? 0 : m) - 1) / 5) * 5;
-                setMinute((prevM < 0 ? 55 : prevM).toString().padStart(2, '0'));
+                const newVal = (prevM < 0 ? 55 : prevM).toString().padStart(2, '0');
+                setMinute(newVal);
+                minuteValRef.current = newVal;
             }
         } else if (e.key === 'Enter') {
             handleConfirm();
