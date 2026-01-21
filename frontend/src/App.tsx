@@ -329,6 +329,9 @@ const AppContent = () => {
               onStartTimer={handleStartTaskTimer}
               activeTimerTaskId={pomodoro.currentTaskId}
             />
+            {/* Add Task Input - right after task list */}
+            <AddTaskInput onAdd={handleAddTask} />
+
             <TimeSlots
               tasks={tasks}
               onToggle={toggleTask}
@@ -377,11 +380,6 @@ const AppContent = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Add Task Input is visible in List/Schedule view */}
-      {viewMode === 'today' && (
-        <AddTaskInput onAdd={handleAddTask} />
-      )}
 
       <QuickAddModal
         isOpen={!!quickAddTime}
