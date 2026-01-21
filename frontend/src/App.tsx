@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Hexagon, LogOut, Camera } from 'lucide-react';
+import { Calendar, Hexagon, LogOut, Camera, CalendarRange } from 'lucide-react';
 import { Routes, Route } from 'react-router-dom';
 import clsx from 'clsx';
 import { App as CapApp } from '@capacitor/app';
@@ -190,7 +190,7 @@ const AppContent = () => {
 
   // Planner State
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('today');
   const [quickAddTime, setQuickAddTime] = useState<string | null>(null);
   const [quickAddDuration, setQuickAddDuration] = useState<number | undefined>(undefined);
 
@@ -311,9 +311,9 @@ const AppContent = () => {
       </div>
 
       <AnimatePresence mode="wait">
-        {viewMode === 'list' ? (
+        {viewMode === 'today' ? (
           <motion.div
-            key="list"
+            key="today"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
@@ -329,15 +329,6 @@ const AppContent = () => {
               onStartTimer={handleStartTaskTimer}
               activeTimerTaskId={pomodoro.currentTaskId}
             />
-          </motion.div>
-        ) : viewMode === 'schedule' ? (
-          <motion.div
-            key="schedule"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
-          >
             <TimeSlots
               tasks={tasks}
               onToggle={toggleTask}
@@ -352,7 +343,7 @@ const AppContent = () => {
               elapsedMinutes={pomodoro.elapsedMinutes}
             />
           </motion.div>
-        ) : (
+        ) : viewMode === 'week' ? (
           <motion.div
             key="week"
             initial={{ opacity: 0, x: 10 }}
@@ -369,11 +360,26 @@ const AppContent = () => {
               elapsedMinutes={pomodoro.elapsedMinutes}
             />
           </motion.div>
+        ) : (
+          <motion.div
+            key="month"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Month view - Coming soon */}
+            <div className="px-6 py-12 text-center">
+              <CalendarRange className="w-16 h-16 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-500 dark:text-slate-400">월간 뷰</h3>
+              <p className="text-sm text-gray-400 dark:text-slate-500 mt-2">곧 추가될 예정입니다</p>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Add Task Input is visible in List/Schedule view */}
-      {viewMode !== 'week' && (
+      {viewMode === 'today' && (
         <AddTaskInput onAdd={handleAddTask} />
       )}
 

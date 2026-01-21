@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { List, Clock, CalendarDays } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '@/contexts/ThemeContext';
 
-export type ViewMode = 'list' | 'schedule' | 'week';
+export type ViewMode = 'today' | 'week' | 'month';
 
 interface ViewToggleProps {
     mode: ViewMode;
@@ -13,9 +13,9 @@ interface ViewToggleProps {
 export const ViewToggle = ({ mode, onChange }: ViewToggleProps) => {
     const { primaryColor } = useTheme();
     const modes: { key: ViewMode; icon: React.ReactNode; label: string }[] = [
-        { key: 'list', icon: <List className="w-4 h-4" />, label: 'List' },
-        { key: 'schedule', icon: <Clock className="w-4 h-4" />, label: 'Schedule' },
+        { key: 'today', icon: <Calendar className="w-4 h-4" />, label: 'Today' },
         { key: 'week', icon: <CalendarDays className="w-4 h-4" />, label: 'Week' },
+        { key: 'month', icon: <CalendarRange className="w-4 h-4" />, label: 'Month' },
     ];
 
     const activeIndex = modes.findIndex(m => m.key === mode);
@@ -49,3 +49,4 @@ export const ViewToggle = ({ mode, onChange }: ViewToggleProps) => {
         </div>
     );
 };
+
