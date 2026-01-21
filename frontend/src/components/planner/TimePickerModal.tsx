@@ -80,6 +80,8 @@ export const TimePickerModal = ({
         hourValRef.current = val;
 
         // Auto-advance logic:
+        // Use timeout to allow state update to settle before moving focus
+        // preventing race conditions with onBlur
         if (val.length === 2 && !isNaN(parseInt(val)) && parseInt(val) <= 23) {
             minuteInputRef.current?.focus();
             minuteInputRef.current?.select();
@@ -103,7 +105,7 @@ export const TimePickerModal = ({
     };
 
     const handleHourBlur = () => {
-        // Use Ref for latest value to avoid stale state race condition
+        // Use Ref for latest value to avoid stale state
         const currentVal = hourValRef.current;
         if (!currentVal) return;
 
