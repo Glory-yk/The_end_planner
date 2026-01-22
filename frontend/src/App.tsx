@@ -4,6 +4,7 @@ import { Calendar, Hexagon, LogOut, Camera } from 'lucide-react';
 import { Routes, Route } from 'react-router-dom';
 import clsx from 'clsx';
 import { App as CapApp } from '@capacitor/app';
+import { format } from 'date-fns';
 
 // Auth
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -200,7 +201,8 @@ const AppContent = () => {
   const tasks = getTasksForDate(selectedDate);
 
   const handleAddTask = (title: string, time?: string, duration?: number) => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    // FIX: Use local date format instead of ISO string (which converts to UTC and causes date shift)
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     addTask(title, dateStr, time, undefined, duration);
   };
 

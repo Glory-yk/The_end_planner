@@ -271,7 +271,24 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
     // Merge DB tasks and Google Events
     const allTasks = useMemo(() => {
         const googleTasks = googleEvents
-            .filter(event => !tasks.some(t => t.googleEventId === event.id))
+            .filter(event => {
+                // Check for exact ID match
+                const hasIdMatch = tasks.some(t => t.googleEventId === event.id);
+                if (hasIdMatch) return false;
+
+                // Fallback: Check for Title + Date + Time match (for tasks not yet synced with ID)
+                // This prevents visual duplicates when the backend has synced but frontend hasn't received the ID yet
+                const eventDate = event.start.date || (event.start.dateTime ? event.start.dateTime.split('T')[0] : '');
+                const eventTime = event.start.dateTime ? format(new Date(event.start.dateTime), 'HH:mm') : undefined;
+
+                const hasContentMatch = tasks.some(t =>
+                    t.title === event.summary &&
+                    t.scheduledDate === eventDate &&
+                    (!t.startTime || !eventTime || t.startTime === eventTime)
+                );
+
+                return !hasContentMatch;
+            })
             .map(event => {
                 let duration = undefined;
                 if (event.start.dateTime && event.end.dateTime) {
@@ -316,7 +333,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
             const newTask = await taskApi.create({
                 title,
                 isCompleted: false,
-                scheduledDate: scheduledDate || format(new Date(), 'yyyy-MM-dd'),
+                scheduledDate: scheduledDate || format(new Date(), 'yyyy-MM-dd'), // Uses local time of browser
                 startTime,
                 duration,
                 mandalartRef
@@ -333,8 +350,9 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                 });
             }
 
-            // Sync with Google Calendar after adding task
-            syncWithGoogleCalendar();
+            // Sync with Google Calendar is handled by the backend (TasksService.create)
+            // No need to call syncWithGoogleCalendar() here as it causes race conditions
+            // and potential duplicate tasks/events.
 
             return newTask.id;
         } catch (err) {
@@ -379,6 +397,11 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
 
         // Optimistic update
         setTasks(prev => prev.filter(t => t.id !== taskId));
+
+        // Also remove from Google Events state to prevent "Zombie" tasks
+        if (taskToDelete.googleEventId) {
+            setGoogleEvents(prev => prev.filter(e => e.id !== taskToDelete.googleEventId));
+        }
 
         try {
             await taskApi.delete(taskId);
