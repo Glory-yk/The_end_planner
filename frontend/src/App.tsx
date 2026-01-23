@@ -29,6 +29,7 @@ import { WeeklyScheduleView } from '@/components/planner/WeeklyScheduleView';
 import { ScheduleAlertModal } from '@/components/planner/ScheduleAlertModal';
 import { useScheduleNotification } from '@/hooks/useScheduleNotification';
 import { SessionAssignModal } from '@/components/planner/SessionAssignModal';
+import { TaskCompletionModal } from '@/components/planner/TaskCompletionModal';
 import { MandalartDrawer } from '@/components/planner/MandalartDrawer';
 
 // Mandalart Components
@@ -63,36 +64,27 @@ const AppContent = () => {
     syncWithGoogleCalendar
   } = useAppStore();
 
-  // Pomodoro hook with task timer integration
   // Session Assign Modal state
   const [completedSession, setCompletedSession] = useState<{ elapsedMinutes: number; endTime: Date } | null>(null);
+
+  // Task Completion Modal state
+  const [completionModalData, setCompletionModalData] = useState<{ taskId: string; elapsedMinutes: number; endTime: Date } | null>(null);
 
   // Pomodoro hook with task timer integration
   const pomodoro = usePomodoro({
     onTaskTimerStop: (elapsedMinutes, taskId) => {
       const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - elapsedMinutes * 60000);
-      const startTimeStr = startTime.toISOString();
-      const endTimeStr = endTime.toISOString();
 
-      // If valid taskId exists (pre-assigned), save directly
+      // If valid taskId exists (pre-assigned), ask for completion
       if (taskId) {
-        // Create Focus Session
-        addFocusSession({
-          taskId,
-          startTime: startTimeStr,
-          endTime: endTimeStr,
-          duration: elapsedMinutes
-        });
-        // Legacy support
-        storeStopTaskTimer(taskId, elapsedMinutes);
+        setCompletionModalData({ taskId, elapsedMinutes, endTime });
       } else {
         // If Quick Focus (no taskId), open assign modal
         if (elapsedMinutes > 0) {
           setCompletedSession({ elapsedMinutes, endTime });
         }
       }
-      console.log(`Task completed: ${elapsedMinutes} minutes`);
+      console.log(`Task timer stopped: ${elapsedMinutes} minutes`);
     }
   });
 
@@ -148,6 +140,52 @@ const AppContent = () => {
       }
 
       setCompletedSession(null);
+    }
+  };
+
+  const handleTaskCompleteConfirm = async () => {
+    if (completionModalData) {
+      const { taskId, elapsedMinutes, endTime } = completionModalData;
+      const startTime = new Date(endTime.getTime() - elapsedMinutes * 60000);
+
+      // 1. Mark task as completed if not already
+      const taskToCheck = allTasks.find(t => t.id === taskId);
+      if (taskToCheck && !taskToCheck.isCompleted) {
+        await toggleTask(taskId);
+      }
+
+      // 2. Create Focus Session
+      await addFocusSession({
+        taskId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        duration: elapsedMinutes
+      });
+
+      // 3. Legacy update
+      storeStopTaskTimer(taskId, elapsedMinutes);
+
+      setCompletionModalData(null);
+    }
+  };
+
+  const handleTaskCompleteSaveOnly = async () => {
+    if (completionModalData) {
+      const { taskId, elapsedMinutes, endTime } = completionModalData;
+      const startTime = new Date(endTime.getTime() - elapsedMinutes * 60000);
+
+      // 1. Create Focus Session (without completing task)
+      await addFocusSession({
+        taskId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        duration: elapsedMinutes
+      });
+
+      // 2. Legacy update
+      storeStopTaskTimer(taskId, elapsedMinutes);
+
+      setCompletionModalData(null);
     }
   };
 
@@ -262,6 +300,10 @@ const AppContent = () => {
     }
     if (completedSession) {
       setCompletedSession(null);
+      return;
+    }
+    if (completionModalData) {
+      setCompletionModalData(null);
       return;
     }
     if (alertTask) {
@@ -524,6 +566,15 @@ const AppContent = () => {
           stopTaskTimer={pomodoro.stopTaskTimer}
           cancelTaskTimer={pomodoro.cancelTaskTimer}
           onStartQuickFocus={handleStartQuickFocus}
+        />
+
+        <TaskCompletionModal
+          isOpen={!!completionModalData}
+          task={allTasks.find(t => t.id === completionModalData?.taskId)}
+          elapsedMinutes={completionModalData?.elapsedMinutes || 0}
+          onClose={() => setCompletionModalData(null)}
+          onComplete={handleTaskCompleteConfirm}
+          onSaveOnly={handleTaskCompleteSaveOnly}
         />
 
         <SessionAssignModal

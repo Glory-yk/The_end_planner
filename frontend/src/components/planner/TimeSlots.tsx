@@ -315,11 +315,24 @@ export const TimeSlots = ({
         }
     };
 
+    // Current time state
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
+        return () => clearInterval(timer);
+    }, []);
+
+    const currentHour = currentTime.getHours();
+    const currentMinute = currentTime.getMinutes();
+
     return (
         <div
             className="select-none flex flex-col h-[calc(100vh-280px)]"
             ref={dragRef}
         >
+            {/* ... (Drag instruction and Unscheduled Tasks remain same) */}
+
             {/* Drag instruction hint */}
             <div className="px-6 flex items-center gap-2 text-xs text-gray-400 mb-2 flex-shrink-0">
                 <GripVertical className="w-3 h-3" />
@@ -414,7 +427,7 @@ export const TimeSlots = ({
             {/* Scrollable Time Slots Container */}
             <div
                 ref={scrollContainerRef}
-                className="flex-1 overflow-y-auto px-6 pb-32 space-y-1"
+                className="flex-1 overflow-y-auto px-6 pb-32 space-y-1 relative" // added relative
                 onMouseUp={() => {
                     handleDragEnd();
                     handleTaskDragEnd();
@@ -434,13 +447,14 @@ export const TimeSlots = ({
                     const timeLabel = `${hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`;
                     const isSelected = isHourInSelection(hour);
                     const isDropTarget = dropTargetHour === hour && draggingTaskId;
+                    const isCurrentHour = hour === currentHour;
 
                     return (
                         <div
                             key={hour}
                             className={clsx(
                                 "flex gap-4 group transition-colors rounded-lg",
-                                "relative", // 추가
+                                "relative",
                                 isSelected && "bg-blue-100 dark:bg-blue-900/20",
                                 isDropTarget && "bg-green-100 dark:bg-green-900/20 ring-2 ring-green-400 dark:ring-green-600"
                             )}
@@ -476,6 +490,17 @@ export const TimeSlots = ({
                                 )}
                                 data-hour={hour}
                             >
+                                {/* Current Time Indicator */}
+                                {isCurrentHour && (
+                                    <div
+                                        className="absolute w-full flex items-center z-10 pointer-events-none"
+                                        style={{ top: `${(currentMinute / 60) * 100}%` }}
+                                    >
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 -ml-1"></div>
+                                        <div className="h-[2px] bg-blue-500 w-full opacity-50"></div>
+                                    </div>
+                                )}
+
                                 {hourTasks.length > 0 ? (
                                     <div className="space-y-2 py-2">
                                         {hourTasks.map((task) => (
