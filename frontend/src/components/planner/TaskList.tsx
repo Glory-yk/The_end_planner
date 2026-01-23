@@ -189,7 +189,7 @@ export const TaskList = ({ tasks, onToggle, onDelete, onUpdateTime, onStartTimer
 
     return (
         <>
-            <div className="px-6 space-y-3 pb-24">
+            <div className="px-6 space-y-3 pb-24 md:pb-8">
                 <AnimatePresence initial={false}>
                     {tasks.map((task) => {
                         const hasMandalartLink = !!task.mandalartRef;

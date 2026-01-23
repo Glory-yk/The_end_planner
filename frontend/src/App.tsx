@@ -31,6 +31,7 @@ import { useScheduleNotification } from '@/hooks/useScheduleNotification';
 import { SessionAssignModal } from '@/components/planner/SessionAssignModal';
 import { TaskCompletionModal } from '@/components/planner/TaskCompletionModal';
 import { MandalartDrawer } from '@/components/planner/MandalartDrawer';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 // Mandalart Components
 import { MandalartView } from '@/components/mandalart/MandalartView';
@@ -371,6 +372,8 @@ const AppContent = () => {
             transition={{ duration: 0.2 }}
           >
             {tasks.length === 0 && <FocusQuote />}
+            {/* Add Task Input - top of list */}
+            <AddTaskInput onAdd={handleAddTask} />
             <TaskList
               tasks={tasks}
               onToggle={toggleTask}
@@ -380,8 +383,6 @@ const AppContent = () => {
               onStartTimer={handleStartTaskTimer}
               activeTimerTaskId={pomodoro.currentTaskId}
             />
-            {/* Add Task Input - right after task list */}
-            <AddTaskInput onAdd={handleAddTask} />
 
             <TimeSlots
               tasks={tasks}
@@ -478,137 +479,182 @@ const AppContent = () => {
     </motion.div>
   );
 
+  // Responsive Layout Helper
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Prepare sidebar props
+  const sidebar = (
+    <Sidebar
+      currentView={currentView}
+      currentViewMode={viewMode}
+      onViewChange={setCurrentView}
+      onViewModeChange={setViewMode}
+      user={user}
+    />
+  );
+
   return (
-    <div className="h-full w-full bg-gray-50 dark:bg-slate-950 flex justify-center font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 h-full shadow-xl dark:shadow-black/20 relative flex flex-col transition-colors duration-300 overflow-hidden">
+    <div className="h-full w-full bg-gray-50 dark:bg-slate-950 font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden flex">
 
-        {/* User Info Header */}
-        {user && (
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 z-50 relative" style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
-            <div className="flex items-center gap-2">
-              {user.picture && (
-                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
-              )}
-              <span className="text-sm text-gray-700 dark:text-slate-300">{user.name}</span>
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden md:block h-full transition-all duration-300 z-50">
+        {sidebar}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 h-full flex flex-col overflow-hidden relative">
+        <div className={clsx(
+          "h-full w-full bg-white dark:bg-slate-950 flex flex-col transition-colors duration-300 relative",
+          // Mobile: Center centered max-w-lg
+          // Desktop: Full width, no max-w constraint
+          "md:w-full md:max-w-none",
+          "mx-auto", // Center on mobile
+          isMobile ? "max-w-lg shadow-xl dark:shadow-black/20" : ""
+        )}>
+
+          {/* User Info Header - Mobile Only */}
+          {user && isMobile && (
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 z-50 relative" style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+              <div className="flex items-center gap-2">
+                {user.picture && (
+                  <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                )}
+                <span className="text-sm text-gray-700 dark:text-slate-300">{user.name}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <ThemeSelector />
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <ThemeSelector />
-              <button
-                onClick={logout}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+          )}
+
+          {/* Desktop Header (Optional - maybe just spacing or breadcrumbs) */}
+          {!isMobile && (
+            <div className="h-4 w-full bg-transparent flex-shrink-0" /> // Spacer
+          )}
+
+          {/* Main Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-0 md:px-8">
+            <div className="max-w-5xl mx-auto w-full h-full pb-20"> {/* Max width container for desktop content */}
+              <AnimatePresence mode="wait">
+                {currentView === 'planner' ? renderPlanner() : renderMandalart()}
+              </AnimatePresence>
             </div>
           </div>
-        )}
 
-        {/* Main Content Area - scrollable */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-          <AnimatePresence mode="wait">
-            {currentView === 'planner' ? renderPlanner() : renderMandalart()}
-          </AnimatePresence>
+          {/* Bottom Navigation - Mobile Only */}
+          {isMobile && (
+            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 z-40 transition-colors duration-300" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+              <div className="flex items-center justify-around p-2">
+                <button
+                  onClick={() => setCurrentView('planner')}
+                  className={clsx(
+                    "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20",
+                    currentView === 'planner'
+                      ? "text-primary bg-primary/10 dark:bg-primary/20"
+                      : "text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  )}
+                >
+                  <Calendar className="w-6 h-6" />
+                  <span className="text-[10px] font-medium">PLANNER</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('mandalart')}
+                  className={clsx(
+                    "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20",
+                    currentView === 'mandalart'
+                      ? "text-primary bg-primary/10 dark:bg-primary/20"
+                      : "text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  )}
+                >
+                  <Hexagon className="w-6 h-6" />
+                  <span className="text-[10px] font-medium">MANDALART</span>
+                </button>
+
+                {/* 인증샷 FAB 버튼 */}
+                <button
+                  onClick={() => setAuthPhotoOpen(true)}
+                  className="flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                >
+                  <Camera className="w-6 h-6" />
+                  <span className="text-[10px] font-medium">인증샷</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Floating Pomodoro Timer */}
+          <FloatingTimer
+            timeLeft={pomodoro.timeLeft}
+            isActive={pomodoro.isActive}
+            sessionType={pomodoro.sessionType}
+            toggleTimer={pomodoro.toggleTimer}
+            resetTimer={pomodoro.resetTimer}
+            formatTime={pomodoro.formatTime}
+            timerMode={pomodoro.timerMode}
+            currentTaskId={pomodoro.currentTaskId}
+            currentTaskTitle={pomodoro.currentTaskTitle}
+            formatElapsedTime={pomodoro.formatElapsedTime}
+            elapsedMinutes={pomodoro.elapsedMinutes}
+            stopTaskTimer={pomodoro.stopTaskTimer}
+            cancelTaskTimer={pomodoro.cancelTaskTimer}
+            onStartQuickFocus={handleStartQuickFocus}
+          />
+
+          <TaskCompletionModal
+            isOpen={!!completionModalData}
+            task={allTasks.find(t => t.id === completionModalData?.taskId)}
+            elapsedMinutes={completionModalData?.elapsedMinutes || 0}
+            onClose={() => setCompletionModalData(null)}
+            onComplete={handleTaskCompleteConfirm}
+            onSaveOnly={handleTaskCompleteSaveOnly}
+          />
+
+          <SessionAssignModal
+            isOpen={!!completedSession}
+            elapsedMinutes={completedSession?.elapsedMinutes || 0}
+            tasks={tasks}
+            onClose={() => setCompletedSession(null)}
+            onAssign={handleSessionAssign}
+            onCreate={handleSessionCreate}
+            onDiscard={() => setCompletedSession(null)}
+          />
+
+          {/* Schedule Alert Modal */}
+          <ScheduleAlertModal
+            isOpen={!!alertTask}
+            task={alertTask}
+            onClose={handleAlertClose}
+            onStartTimer={handleAlertStartTimer}
+            onSnooze={handleAlertSnooze}
+          />
+
+          {/* Auth Photo Screen */}
+          <AuthPhotoScreen
+            isOpen={authPhotoOpen}
+            onClose={() => setAuthPhotoOpen(false)}
+          />
+
+          {/* Mandalart Drawer */}
+          <MandalartDrawer
+            isOpen={mandalartDrawerOpen}
+            onClose={() => setMandalartDrawerOpen(false)}
+            selectedDate={selectedDate}
+          />
+
         </div>
-
-        {/* Bottom Navigation - fixed at bottom */}
-        <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 z-40 transition-colors duration-300" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex items-center justify-around p-2">
-            <button
-              onClick={() => setCurrentView('planner')}
-              className={clsx(
-                "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20",
-                currentView === 'planner'
-                  ? "text-primary bg-primary/10 dark:bg-primary/20"
-                  : "text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
-              )}
-            >
-              <Calendar className="w-6 h-6" />
-              <span className="text-[10px] font-medium">PLANNER</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentView('mandalart')}
-              className={clsx(
-                "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20",
-                currentView === 'mandalart'
-                  ? "text-primary bg-primary/10 dark:bg-primary/20"
-                  : "text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
-              )}
-            >
-              <Hexagon className="w-6 h-6" />
-              <span className="text-[10px] font-medium">MANDALART</span>
-            </button>
-
-            {/* 인증샷 FAB 버튼 */}
-            <button
-              onClick={() => setAuthPhotoOpen(true)}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
-            >
-              <Camera className="w-6 h-6" />
-              <span className="text-[10px] font-medium">인증샷</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Floating Pomodoro Timer - positioned above bottom nav */}
-        <FloatingTimer
-          timeLeft={pomodoro.timeLeft}
-          isActive={pomodoro.isActive}
-          sessionType={pomodoro.sessionType}
-          toggleTimer={pomodoro.toggleTimer}
-          resetTimer={pomodoro.resetTimer}
-          formatTime={pomodoro.formatTime}
-          timerMode={pomodoro.timerMode}
-          currentTaskId={pomodoro.currentTaskId}
-          currentTaskTitle={pomodoro.currentTaskTitle}
-          formatElapsedTime={pomodoro.formatElapsedTime}
-          elapsedMinutes={pomodoro.elapsedMinutes}
-          stopTaskTimer={pomodoro.stopTaskTimer}
-          cancelTaskTimer={pomodoro.cancelTaskTimer}
-          onStartQuickFocus={handleStartQuickFocus}
-        />
-
-        <TaskCompletionModal
-          isOpen={!!completionModalData}
-          task={allTasks.find(t => t.id === completionModalData?.taskId)}
-          elapsedMinutes={completionModalData?.elapsedMinutes || 0}
-          onClose={() => setCompletionModalData(null)}
-          onComplete={handleTaskCompleteConfirm}
-          onSaveOnly={handleTaskCompleteSaveOnly}
-        />
-
-        <SessionAssignModal
-          isOpen={!!completedSession}
-          elapsedMinutes={completedSession?.elapsedMinutes || 0}
-          tasks={tasks}
-          onClose={() => setCompletedSession(null)}
-          onAssign={handleSessionAssign}
-          onCreate={handleSessionCreate}
-          onDiscard={() => setCompletedSession(null)}
-        />
-
-        {/* Schedule Alert Modal */}
-        <ScheduleAlertModal
-          isOpen={!!alertTask}
-          task={alertTask}
-          onClose={handleAlertClose}
-          onStartTimer={handleAlertStartTimer}
-          onSnooze={handleAlertSnooze}
-        />
-
-        {/* Auth Photo Screen */}
-        <AuthPhotoScreen
-          isOpen={authPhotoOpen}
-          onClose={() => setAuthPhotoOpen(false)}
-        />
-
-        {/* Mandalart Drawer */}
-        <MandalartDrawer
-          isOpen={mandalartDrawerOpen}
-          onClose={() => setMandalartDrawerOpen(false)}
-          selectedDate={selectedDate}
-        />
-
       </div>
     </div>
   );
