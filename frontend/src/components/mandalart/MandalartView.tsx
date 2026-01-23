@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/hooks/useAppStore';
 import { MandalartGrid } from './MandalartGrid';
+import { MandalartRadarChart } from './MandalartRadarChart';
 import { GoalTodoModal } from './GoalTodoModal';
 import { MandalartWizard, WizardResult, CATEGORIES } from './MandalartWizard';
 import { SubGoalInputModal } from './SubGoalInputModal';
@@ -315,12 +316,27 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
                 </div>
             </div>
 
-            {/* Mandalart Goals Overview */}
+            {/* Mandalart Radar Chart */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col items-center">
+                <h2 className="w-full font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    Balance Analysis
+                </h2>
+                <MandalartRadarChart
+                    data={mandalartStats.subGoals.map(g => ({
+                        label: g.title,
+                        value: g.progress,
+                        color: g.gridColor
+                    }))}
+                />
+            </div>
+
+            {/* List Overview */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <Hexagon className="w-5 h-5 text-primary" />
-                        Mandalart Goals
+                        Details
                     </h2>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total: {mandalartStats.totalProgress}%</span>
                 </div>
