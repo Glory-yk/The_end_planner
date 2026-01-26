@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Check } from 'lucide-react';
+import { X, Sparkles, Check, Edit3, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
+import { MandalartData } from '@/types/mandalart';
 
 interface MandalartWizardProps {
     isOpen: boolean;
     onClose: () => void;
     onComplete: (result: WizardResult) => void;
+    existingData?: MandalartData; // 기존 만다라트 데이터
+    mode?: 'create' | 'edit'; // 생성 또는 수정 모드
 }
 
 export interface WizardResult {
     selectedCategories: string[];
+    editMode?: boolean; // 기존 데이터 덮어쓰기 여부
 }
 
 // 8개 카테고리 (Main Goal 주변 8칸에 배치될 Sub-Goal 카테고리)
@@ -25,8 +29,45 @@ const CATEGORIES = [
     { value: 'coding', label: '개발 & 기술', icon: '💻', color: '#ec4899', description: '코딩, 프로젝트, 기술 스택' }
 ];
 
-export const MandalartWizard = ({ isOpen, onClose, onComplete }: MandalartWizardProps) => {
+export const MandalartWizard = ({ isOpen, onClose, onComplete, existingData }: MandalartWizardProps) => {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    // 기존 데이터에서 선택된 카테고리 추출
+    useEffect(() => {
+        if (isOpen && existingData) {
+            const gridIndices = [0, 1, 2, 3, 5, 6, 7, 8];
+            const existingCategories: string[] = [];
+
+            gridIndices.forEach((gridIndex) => {
+                const gridTitle = existingData[gridIndex]?.cells?.[4]?.toLowerCase() || '';
+                const gridIcon = existingData[gridIndex]?.cellIcons?.[4] || existingData[gridIndex]?.icon;
+
+                // 카테고리 매칭 (아이콘 또는 제목으로)
+                const matchedCategory = CATEGORIES.find(c =>
+                    c.icon === gridIcon ||
+                    gridTitle.includes(c.label.split(' ')[0].toLowerCase())
+                );
+
+                if (matchedCategory && !existingCategories.includes(matchedCategory.value)) {
+                    existingCategories.push(matchedCategory.value);
+                }
+            });
+
+            if (existingCategories.length > 0) {
+                setSelectedCategories(existingCategories);
+                setIsEditMode(true);
+            }
+        }
+    }, [isOpen, existingData]);
+
+    // 모달 닫을 때 상태 초기화
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedCategories([]);
+            setIsEditMode(false);
+        }
+    }, [isOpen]);
 
     const handleToggleCategory = (value: string) => {
         setSelectedCategories(prev => {
@@ -41,16 +82,25 @@ export const MandalartWizard = ({ isOpen, onClose, onComplete }: MandalartWizard
         });
     };
 
-    const handleComplete = () => {
+    const handleComplete = (forceOverwrite: boolean = false) => {
         if (selectedCategories.length === 0) return;
-        onComplete({ selectedCategories });
+        onComplete({
+            selectedCategories,
+            editMode: forceOverwrite || isEditMode
+        });
         handleClose();
     };
 
     const handleClose = () => {
         setSelectedCategories([]);
+        setIsEditMode(false);
         onClose();
     };
+
+    // 기존 목표가 있는지 확인
+    const hasExistingGoals = existingData?.some((grid, index) =>
+        index !== 4 && grid?.cells?.[4]?.trim()
+    );
 
     return (
         <AnimatePresence>
@@ -82,11 +132,20 @@ export const MandalartWizard = ({ isOpen, onClose, onComplete }: MandalartWizard
                             </button>
 
                             <div className="flex items-center gap-3 mb-2">
-                                <Sparkles className="w-6 h-6" />
-                                <h2 className="text-xl font-bold">맞춤 목표 생성</h2>
+                                {hasExistingGoals ? (
+                                    <Edit3 className="w-6 h-6" />
+                                ) : (
+                                    <Sparkles className="w-6 h-6" />
+                                )}
+                                <h2 className="text-xl font-bold">
+                                    {hasExistingGoals ? '목표 수정' : '맞춤 목표 생성'}
+                                </h2>
                             </div>
                             <p className="text-sm opacity-90">
-                                중심 목표 주변에 배치할 카테고리를 선택하세요 (최대 8개)
+                                {hasExistingGoals
+                                    ? '카테고리를 변경하거나 추가하여 목표를 수정할 수 있습니다'
+                                    : '중심 목표 주변에 배치할 카테고리를 선택하세요 (최대 8개)'
+                                }
                             </p>
                         </div>
 
@@ -195,22 +254,43 @@ export const MandalartWizard = ({ isOpen, onClose, onComplete }: MandalartWizard
                         </div>
 
                         {/* Footer */}
-                        <div className="flex-shrink-0 flex justify-between p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
-                            <button
-                                onClick={handleClose}
-                                className="px-4 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                            >
-                                취소
-                            </button>
+                        <div className="flex-shrink-0 flex flex-col gap-2 p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+                            {hasExistingGoals && selectedCategories.length > 0 && (
+                                <div className="flex gap-2 justify-end">
+                                    <button
+                                        onClick={() => handleComplete(false)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl hover:bg-gray-300 dark:hover:bg-slate-600 transition-all text-sm font-medium"
+                                    >
+                                        빈 칸에만 추가
+                                    </button>
+                                    <button
+                                        onClick={() => handleComplete(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-all text-sm font-medium"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        전체 덮어쓰기
+                                    </button>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <button
+                                    onClick={handleClose}
+                                    className="px-4 py-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                >
+                                    취소
+                                </button>
 
-                            <button
-                                onClick={handleComplete}
-                                disabled={selectedCategories.length === 0}
-                                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-                            >
-                                <Sparkles className="w-4 h-4" />
-                                {selectedCategories.length}개 카테고리 적용
-                            </button>
+                                {!hasExistingGoals && (
+                                    <button
+                                        onClick={() => handleComplete(false)}
+                                        disabled={selectedCategories.length === 0}
+                                        className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                        {selectedCategories.length}개 카테고리 적용
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 </>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 import client from '@/api/client';
-import { Task, FocusSession } from '@/types/task';
+import { Task, FocusSession, RecurrenceRule, DayOfWeek } from '@/types/task';
 import { MandalartData, DEFAULT_CATEGORIES } from '@/types/mandalart';
 import { Todo } from '@/types/todo';
 import { format } from 'date-fns';
@@ -68,6 +68,7 @@ interface AppStoreContextType {
     // Integration
     addTaskFromMandalart: (gridIndex: number, cellIndex: number, scheduledDate?: string) => void;
     updateMandalartIcon: (gridIndex: number, icon: string, cellIndex?: number) => void;
+    addRoutineFromMandalart: (gridIndex: number, cellIndex: number, title: string, recurrence: RecurrenceRule, startTime?: string) => Promise<void>;
 
     // Wear OS
     syncWearSession: (session: WearTimerSession) => Promise<Task | null>;
@@ -725,6 +726,71 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         });
     };
 
+    // ============ ROUTINE ACTIONS ============
+
+    const addRoutineFromMandalart = async (
+        gridIndex: number,
+        cellIndex: number,
+        title: string,
+        recurrence: RecurrenceRule,
+        startTime?: string
+    ) => {
+        if (!recurrence.daysOfWeek || recurrence.daysOfWeek.length === 0) return;
+
+        const today = new Date();
+        const todayDayOfWeek = today.getDay() as DayOfWeek;
+
+        // 오늘부터 시작해서 다음 4주치 루틴 Task 생성
+        const tasksToCreate: { date: string; dayOfWeek: DayOfWeek }[] = [];
+
+        for (let week = 0; week < 4; week++) {
+            for (const dayOfWeek of recurrence.daysOfWeek) {
+                // 이번 주에서 해당 요일까지의 일수 계산
+                let daysToAdd = dayOfWeek - todayDayOfWeek;
+                if (daysToAdd < 0 || (daysToAdd === 0 && week === 0)) {
+                    // 이미 지난 요일이면 다음 주로
+                    if (week === 0 && daysToAdd < 0) {
+                        daysToAdd += 7;
+                    }
+                }
+                daysToAdd += week * 7;
+
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + daysToAdd);
+
+                // 오늘 이전이면 스킵
+                if (targetDate < today && targetDate.toDateString() !== today.toDateString()) continue;
+
+                tasksToCreate.push({
+                    date: format(targetDate, 'yyyy-MM-dd'),
+                    dayOfWeek
+                });
+            }
+        }
+
+        // 중복 제거 및 정렬
+        const uniqueTasks = tasksToCreate
+            .filter((task, index, self) =>
+                index === self.findIndex(t => t.date === task.date)
+            )
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(0, 28); // 최대 28개 (4주)
+
+        // Task 생성
+        for (const task of uniqueTasks) {
+            try {
+                await addTask(
+                    title,
+                    task.date,
+                    startTime,
+                    { gridIndex, cellIndex }
+                );
+            } catch (err) {
+                console.error('Failed to create routine task:', err);
+            }
+        }
+    };
+
     // ============ WEAR OS SYNC ============
 
     const syncWearSession = useCallback(async (session: WearTimerSession): Promise<Task | null> => {
@@ -883,6 +949,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         convertTodoToTask,
         addTaskFromMandalart,
         updateMandalartIcon,
+        addRoutineFromMandalart,
         // Wear OS
         syncWearSession,
         // Focus Sessions

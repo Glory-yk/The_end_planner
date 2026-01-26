@@ -4,7 +4,9 @@ import { X, Plus, ListTodo, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '@/hooks/useAppStore';
 import { TodoItem } from './TodoItem';
 import { DatePickerModal } from '@/components/planner/DatePickerModal';
+import { RoutineModal } from './RoutineModal';
 import { format } from 'date-fns';
+import { RecurrenceRule } from '@/types/task';
 import clsx from 'clsx';
 
 interface GoalTodoModalProps {
@@ -30,12 +32,15 @@ export const GoalTodoModal = ({
     addTodo,
     toggleTodo,
     deleteTodo,
-    convertTodoToTask
+    convertTodoToTask,
+    addRoutineFromMandalart
   } = useAppStore();
 
   const [newTodoText, setNewTodoText] = useState('');
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [pendingConvertTodoId, setPendingConvertTodoId] = useState<string | null>(null);
+  const [routineModalOpen, setRoutineModalOpen] = useState(false);
+  const [pendingRoutineTodoId, setPendingRoutineTodoId] = useState<string | null>(null);
 
   const todos = getTodosForCell(gridIndex, cellIndex);
   const linkedTasks = getLinkedTasks(gridIndex, cellIndex);
@@ -79,6 +84,37 @@ export const GoalTodoModal = ({
   const pendingTodo = pendingConvertTodoId
     ? todos.find(t => t.id === pendingConvertTodoId)
     : null;
+
+  const pendingRoutineTodo = pendingRoutineTodoId
+    ? todos.find(t => t.id === pendingRoutineTodoId)
+    : null;
+
+  const handleRoutineClick = (todoId: string) => {
+    setPendingRoutineTodoId(todoId);
+    setRoutineModalOpen(true);
+  };
+
+  const handleRoutineConfirm = (recurrence: RecurrenceRule, startTime?: string) => {
+    if (!pendingRoutineTodoId) return;
+
+    const todo = todos.find(t => t.id === pendingRoutineTodoId);
+    if (!todo) return;
+
+    // 루틴 생성
+    addRoutineFromMandalart(
+      gridIndex,
+      cellIndex,
+      todo.text,
+      recurrence,
+      startTime
+    );
+
+    // Todo 삭제 (루틴으로 대체됨)
+    deleteTodo(gridIndex, cellIndex, pendingRoutineTodoId);
+
+    setPendingRoutineTodoId(null);
+    setRoutineModalOpen(false);
+  };
 
   return (
     <AnimatePresence>
@@ -151,6 +187,7 @@ export const GoalTodoModal = ({
                           onToggle={() => toggleTodo(gridIndex, cellIndex, todo.id)}
                           onDelete={() => deleteTodo(gridIndex, cellIndex, todo.id)}
                           onConvert={() => handleConvertClick(todo.id)}
+                          onRoutine={() => handleRoutineClick(todo.id)}
                           isConverted={!!todo.convertedTaskId}
                         />
                       ))}
@@ -263,6 +300,18 @@ export const GoalTodoModal = ({
               setPendingConvertTodoId(null);
             }}
             onSelectDate={handleDateSelect}
+          />
+
+          {/* Routine Modal for creating recurring tasks */}
+          <RoutineModal
+            isOpen={routineModalOpen}
+            taskTitle={pendingRoutineTodo?.text || ''}
+            gridColor={gridColor}
+            onClose={() => {
+              setRoutineModalOpen(false);
+              setPendingRoutineTodoId(null);
+            }}
+            onConfirm={handleRoutineConfirm}
           />
         </>
       )}

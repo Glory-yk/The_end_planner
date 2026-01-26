@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Calendar, Trash2, CheckCircle } from 'lucide-react';
+import { Check, Calendar, Trash2, CheckCircle, Repeat } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import clsx from 'clsx';
 
@@ -9,6 +9,7 @@ interface TodoItemProps {
   onToggle: () => void;
   onDelete: () => void;
   onConvert: () => void;
+  onRoutine?: () => void;
   isConverted: boolean;
 }
 
@@ -18,6 +19,7 @@ export const TodoItem = ({
   onToggle,
   onDelete,
   onConvert,
+  onRoutine,
   isConverted
 }: TodoItemProps) => {
   return (
@@ -67,19 +69,38 @@ export const TodoItem = ({
             Task
           </span>
         ) : (
-          <button
-            onClick={onConvert}
-            disabled={todo.isCompleted}
-            className={clsx(
-              "p-1.5 rounded-lg transition-colors",
-              todo.isCompleted
-                ? "text-gray-300 dark:text-slate-600 cursor-not-allowed"
-                : "text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+          <>
+            <button
+              onClick={onConvert}
+              disabled={todo.isCompleted}
+              className={clsx(
+                "p-1.5 rounded-lg transition-colors",
+                todo.isCompleted
+                  ? "text-gray-300 dark:text-slate-600 cursor-not-allowed"
+                  : "text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+              )}
+              title="Task로 변환"
+            >
+              <Calendar className="w-4 h-4" />
+            </button>
+
+            {/* Routine Button */}
+            {onRoutine && (
+              <button
+                onClick={onRoutine}
+                disabled={todo.isCompleted}
+                className={clsx(
+                  "p-1.5 rounded-lg transition-colors",
+                  todo.isCompleted
+                    ? "text-gray-300 dark:text-slate-600 cursor-not-allowed"
+                    : "text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                )}
+                title="루틴으로 설정"
+              >
+                <Repeat className="w-4 h-4" />
+              </button>
             )}
-            title="Task로 변환"
-          >
-            <Calendar className="w-4 h-4" />
-          </button>
+          </>
         )}
 
         {/* Delete */}

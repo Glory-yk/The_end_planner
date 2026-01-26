@@ -12,7 +12,7 @@ import { getQuoteByCategory, MotivationalQuote } from '@/data/motivationalQuotes
 import { MandalartGridData } from '@/types/mandalart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomOut, Wand2, HelpCircle, Target, BarChart3, Hexagon, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import EmojiPicker, { EmojiClickData, Categories, EmojiStyle, SuggestionMode } from 'emoji-picker-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import clsx from 'clsx';
 
@@ -255,6 +255,7 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
     const handleWizardComplete = (result: WizardResult) => {
         // 선택된 카테고리들을 Main Goal 주변 8칸에 배치
         const gridIndices = [0, 1, 2, 3, 5, 6, 7, 8]; // 중앙(4) 제외
+        const isOverwrite = result.editMode;
 
         result.selectedCategories.forEach((categoryValue, index) => {
             if (index < gridIndices.length) {
@@ -265,11 +266,12 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
                 if (category && template) {
                     // Sub-Goal 중앙 셀에 카테고리 이름 설정
                     const currentValue = mandalartData[gridIndex]?.cells[4];
-                    if (!currentValue || !currentValue.trim()) {
+                    // 덮어쓰기 모드이거나 빈 칸일 때만 업데이트
+                    if (isOverwrite || !currentValue || !currentValue.trim()) {
                         updateMandalartCell(gridIndex, 4, template.name);
+                        // 아이콘 설정
+                        updateMandalartIcon(gridIndex, category.icon, 4);
                     }
-                    // 아이콘 설정
-                    updateMandalartIcon(gridIndex, category.icon, 4);
                 }
             }
         });
@@ -627,15 +629,43 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col gap-2"
                         >
-                            <div className="shadow-2xl rounded-xl overflow-hidden flex-1 sm:flex-none sm:h-[450px]">
+                            {/* 자주 사용하는 이모지 빠른 선택 */}
+                            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-3">
+                                <p className="text-xs text-gray-500 dark:text-slate-400 mb-2 font-medium">자주 사용하는 이모지</p>
+                                <div className="flex flex-wrap gap-1">
+                                    {['🎯', '💪', '📚', '💰', '❤️', '🌟', '🔥', '✨', '🏆', '💡', '🎨', '🎵', '✅', '📝', '💻', '🌎', '🏃', '🧘', '📈', '🎓', '💼', '🏠', '👨‍👩‍👧‍👦', '🙏', '😊', '🌱', '⭐', '🚀', '💎', '🌈'].map((emoji) => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => handleEmojiClick({ emoji } as EmojiClickData)}
+                                            className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="shadow-2xl rounded-xl overflow-hidden flex-1 sm:flex-none sm:h-[400px]">
                                 <EmojiPicker
                                     onEmojiClick={handleEmojiClick}
-                                    skinTonesDisabled
+                                    skinTonesDisabled={false}
                                     searchDisabled={false}
                                     searchPlaceholder="이모지 검색..."
                                     lazyLoadEmojis={true}
                                     width="100%"
                                     height="100%"
+                                    emojiStyle={EmojiStyle.NATIVE}
+                                    suggestedEmojisMode={SuggestionMode.RECENT}
+                                    categories={[
+                                        { category: Categories.SUGGESTED, name: '최근 사용' },
+                                        { category: Categories.SMILEYS_PEOPLE, name: '표정 & 사람' },
+                                        { category: Categories.ANIMALS_NATURE, name: '동물 & 자연' },
+                                        { category: Categories.FOOD_DRINK, name: '음식 & 음료' },
+                                        { category: Categories.TRAVEL_PLACES, name: '여행 & 장소' },
+                                        { category: Categories.ACTIVITIES, name: '활동' },
+                                        { category: Categories.OBJECTS, name: '사물' },
+                                        { category: Categories.SYMBOLS, name: '기호' },
+                                        { category: Categories.FLAGS, name: '깃발' },
+                                    ]}
                                 />
                             </div>
                             <button
@@ -654,6 +684,7 @@ export const MandalartView = ({ onDateClick }: MandalartViewProps) => {
                 isOpen={wizardOpen}
                 onClose={() => setWizardOpen(false)}
                 onComplete={handleWizardComplete}
+                existingData={mandalartData}
             />
 
             {/* Help Center */}
