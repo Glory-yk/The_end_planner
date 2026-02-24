@@ -9,6 +9,7 @@ import { taskApi, focusSessionApi } from '@/api/taskApi';
 import { mandalartApi } from '@/api/mandalartApi';
 import WearSync, { WearTimerSession } from '@/plugins/WearSyncPlugin';
 import { CalendarEvent, calendarApi } from '@/api/calendarApi';
+import { getSafeLocalStorageItem, setSafeLocalStorageItem } from '@/utils/storage';
 
 // ============================================
 // UNIFIED APP STORE
