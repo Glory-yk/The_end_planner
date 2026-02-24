@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use environment variable for production, fallback to localhost for development
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const TOKEN_KEY = 'auth_token';
 
 const client = axios.create({
