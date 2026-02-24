@@ -150,7 +150,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                     }));
                     setMandalartData(migratedData);
                     // Also save to localStorage as cache
-                    localStorage.setItem(MANDALART_STORAGE_KEY, JSON.stringify(migratedData));
+                    setSafeLocalStorageItem(MANDALART_STORAGE_KEY, JSON.stringify(migratedData));
                     console.log('Mandalart loaded from server with content');
                     isInitialLoad.current = false;
                     return;
@@ -162,7 +162,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
             }
 
             // Fallback to localStorage
-            const savedMandalart = localStorage.getItem(MANDALART_STORAGE_KEY);
+            const savedMandalart = getSafeLocalStorageItem(MANDALART_STORAGE_KEY);
             if (savedMandalart) {
                 try {
                     const data = JSON.parse(savedMandalart);
@@ -205,7 +205,7 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         }
 
         // Save to localStorage immediately (as cache)
-        localStorage.setItem(MANDALART_STORAGE_KEY, JSON.stringify(mandalartData));
+        setSafeLocalStorageItem(MANDALART_STORAGE_KEY, JSON.stringify(mandalartData));
 
         // Debounce server sync
         mandalartSyncTimer.current = setTimeout(async () => {

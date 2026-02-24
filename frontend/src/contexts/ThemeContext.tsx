@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getSafeLocalStorageItem, setSafeLocalStorageItem } from '@/utils/storage';
 
 type ThemeColor = string;
 
@@ -24,18 +25,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     // Primary Color State
     const [primaryColor, setPrimaryColor] = useState<ThemeColor>(() => {
-        return localStorage.getItem('theme-primary') || PRESETS[0].value;
+        return getSafeLocalStorageItem('theme-primary') || PRESETS[0].value;
     });
 
     // Dark Mode State
     const [isDarkMode, setIsDarkMode] = useState(() => {
         // Check localStorage first, could also check system preference here
-        return localStorage.getItem('theme-mode') === 'dark';
+        return getSafeLocalStorageItem('theme-mode') === 'dark';
     });
 
     // Handle Primary Color Updates
     useEffect(() => {
-        localStorage.setItem('theme-primary', primaryColor);
+        setSafeLocalStorageItem('theme-primary', primaryColor);
         document.documentElement.style.setProperty('--color-primary', primaryColor);
 
         const r = parseInt(primaryColor.slice(1, 3), 16);
@@ -48,10 +49,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (isDarkMode) {
             document.documentElement.classList.add('dark');
-            localStorage.setItem('theme-mode', 'dark');
+            setSafeLocalStorageItem('theme-mode', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme-mode', 'light');
+            setSafeLocalStorageItem('theme-mode', 'light');
         }
     }, [isDarkMode]);
 

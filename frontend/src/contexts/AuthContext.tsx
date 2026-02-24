@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
+import { getSafeLocalStorageItem, setSafeLocalStorageItem, removeSafeLocalStorageItem } from '@/utils/storage';
 
 interface User {
   id: string;
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for token on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedToken = getSafeLocalStorageItem(TOKEN_KEY);
     if (storedToken) {
       setToken(storedToken);
       fetchUser(storedToken);
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const urlObj = new URL(urlString);
       const token = urlObj.searchParams.get('token');
       if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
+        setSafeLocalStorageItem(TOKEN_KEY, token);
         setToken(token);
         fetchUser(token);
         // Clean URL (only for web browser address bar)
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const url = new URL(event.url.replace('mandalaplan://', 'https://'));
         const token = url.searchParams.get('token');
         if (token) {
-          localStorage.setItem(TOKEN_KEY, token);
+          setSafeLocalStorageItem(TOKEN_KEY, token);
           setToken(token);
           fetchUser(token);
           // 로그인 완료 후 InAppBrowser 닫기
@@ -105,13 +106,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
       } else {
         // Token invalid
-        localStorage.removeItem(TOKEN_KEY);
+        removeSafeLocalStorageItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      localStorage.removeItem(TOKEN_KEY);
+      removeSafeLocalStorageItem(TOKEN_KEY);
       setToken(null);
       setUser(null);
     } finally {
@@ -137,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
+    removeSafeLocalStorageItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   };

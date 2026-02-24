@@ -5,6 +5,7 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/
 import { format, differenceInDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
+import { getSafeLocalStorageItem, setSafeLocalStorageItem } from '@/utils/storage';
 
 interface AuthPhotoScreenProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export const AuthPhotoScreen = ({ isOpen, onClose }: AuthPhotoScreenProps) => {
 
   // 로컬 스토리지에서 주제 목록 불러오기
   useEffect(() => {
-    const saved = localStorage.getItem('auth_topics');
+    const saved = getSafeLocalStorageItem('auth_topics');
     if (saved) {
       try {
         setTopics(JSON.parse(saved));
@@ -88,7 +89,7 @@ export const AuthPhotoScreen = ({ isOpen, onClose }: AuthPhotoScreenProps) => {
 
     const updated = [...topics, newTopic];
     setTopics(updated);
-    localStorage.setItem('auth_topics', JSON.stringify(updated));
+    setSafeLocalStorageItem('auth_topics', JSON.stringify(updated));
     setNewTopicText('');
   };
 
@@ -98,7 +99,7 @@ export const AuthPhotoScreen = ({ isOpen, onClose }: AuthPhotoScreenProps) => {
     if (window.confirm('이 주제를 삭제하시겠습니까?')) {
       const updated = topics.filter(t => t.id !== topicId);
       setTopics(updated);
-      localStorage.setItem('auth_topics', JSON.stringify(updated));
+      setSafeLocalStorageItem('auth_topics', JSON.stringify(updated));
     }
   };
 
@@ -218,13 +219,13 @@ export const AuthPhotoScreen = ({ isOpen, onClose }: AuthPhotoScreenProps) => {
 
       // localStorage에 기록 저장
       const historyKey = `auth_history_${selectedTopic.id}`;
-      const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      const history = JSON.parse(getSafeLocalStorageItem(historyKey) || '[]');
       history.push({
         date: now.toISOString(),
         day: dayCount,
         startDate: startDate.toISOString(),
       });
-      localStorage.setItem(historyKey, JSON.stringify(history));
+      setSafeLocalStorageItem(historyKey, JSON.stringify(history));
 
       alert('인증샷이 저장되었습니다! 🔥');
       onClose();
