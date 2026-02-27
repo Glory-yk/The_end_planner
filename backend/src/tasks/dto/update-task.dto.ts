@@ -44,4 +44,16 @@ export class UpdateTaskDto {
   @IsInt()
   @IsOptional()
   mandalartCellIndex?: number | null;
+
+  @IsString()
+  @IsOptional()
+  projectId?: string | null;
+
+  @IsInt()
+  @IsOptional()
+  priority?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  indent?: number | null;
 }

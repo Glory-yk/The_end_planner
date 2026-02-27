@@ -36,7 +36,7 @@ interface AppStoreContextType {
     tasks: Task[];
     isLoading: boolean;
     error: string | null;
-    addTask: (title: string, scheduledDate?: string, startTime?: string, mandalartRef?: { gridIndex: number; cellIndex: number }, duration?: number) => Promise<string>;
+    addTask: (title: string, scheduledDate?: string, startTime?: string, mandalartRef?: { gridIndex: number; cellIndex: number }, duration?: number, projectId?: string) => Promise<string>;
     toggleTask: (taskId: string) => void;
     deleteTask: (taskId: string) => void;
     getTasksForDate: (date: Date) => Task[];
@@ -329,7 +329,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         scheduledDate?: string,
         startTime?: string,
         mandalartRef?: { gridIndex: number; cellIndex: number },
-        duration?: number
+        duration?: number,
+        projectId?: string
     ): Promise<string> => {
         try {
             const newTask = await taskApi.create({
@@ -338,7 +339,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                 scheduledDate: scheduledDate || format(new Date(), 'yyyy-MM-dd'), // Uses local time of browser
                 startTime,
                 duration,
-                mandalartRef
+                mandalartRef,
+                projectId
             });
 
             setTasks(prev => [...prev, newTask]);

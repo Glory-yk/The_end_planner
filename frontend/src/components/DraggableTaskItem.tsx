@@ -9,6 +9,7 @@ interface DraggableTaskItemProps {
   onClick: (task: Task) => void;
   onScheduleToday?: (id: string) => void;
   showScheduleButton?: boolean;
+  projectName?: string;
 }
 
 const DraggableTaskItem = ({
@@ -19,6 +20,7 @@ const DraggableTaskItem = ({
   onClick,
   onScheduleToday,
   showScheduleButton = false,
+  projectName,
 }: DraggableTaskItemProps) => {
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -26,11 +28,10 @@ const DraggableTaskItem = ({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`group flex items-center gap-3 p-3 bg-white rounded-lg border transition-all ${
-            snapshot.isDragging
+          className={`group flex items-center gap-3 p-3 bg-white rounded-lg border transition-all ${snapshot.isDragging
               ? 'border-primary-400 shadow-lg ring-2 ring-primary-200'
               : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-          }`}
+            }`}
         >
           <div
             {...provided.dragHandleProps}
@@ -60,9 +61,8 @@ const DraggableTaskItem = ({
             onClick={() => onClick(task)}
           >
             <p
-              className={`text-sm font-medium truncate ${
-                task.isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
-              }`}
+              className={`text-sm font-medium truncate ${task.isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
+                }`}
             >
               {task.title}
             </p>
@@ -70,6 +70,11 @@ const DraggableTaskItem = ({
               <p className="text-xs text-gray-500 truncate mt-0.5">
                 {task.description}
               </p>
+            )}
+            {projectName && (
+              <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                {projectName}
+              </span>
             )}
           </div>
 

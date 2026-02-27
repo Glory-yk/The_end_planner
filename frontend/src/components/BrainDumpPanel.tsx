@@ -2,6 +2,7 @@ import { Droppable } from '@hello-pangea/dnd';
 import { Task } from '../types/task';
 import DraggableTaskItem from './DraggableTaskItem';
 import QuickAddInput from './QuickAddInput';
+import { useProjects } from '../contexts/ProjectsContext';
 
 interface BrainDumpPanelProps {
   tasks: Task[];
@@ -20,6 +21,7 @@ const BrainDumpPanel = ({
   onEditTask,
   onScheduleToday,
 }: BrainDumpPanelProps) => {
+  const { projects } = useProjects();
   return (
     <div className="h-full flex flex-col bg-gray-50 border-r border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
@@ -36,9 +38,8 @@ const BrainDumpPanel = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 overflow-y-auto px-4 pb-4 transition-colors ${
-              snapshot.isDraggingOver ? 'bg-primary-50' : ''
-            }`}
+            className={`flex-1 overflow-y-auto px-4 pb-4 transition-colors ${snapshot.isDraggingOver ? 'bg-primary-50' : ''
+              }`}
           >
             {tasks.length === 0 && !snapshot.isDraggingOver ? (
               <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -60,18 +61,22 @@ const BrainDumpPanel = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {tasks.map((task, index) => (
-                  <DraggableTaskItem
-                    key={task.id}
-                    task={task}
-                    index={index}
-                    onToggleComplete={onToggleComplete}
-                    onDelete={onDeleteTask}
-                    onClick={onEditTask}
-                    onScheduleToday={onScheduleToday}
-                    showScheduleButton={true}
-                  />
-                ))}
+                {tasks.map((task, index) => {
+                  const project = projects.find(p => p.id === task.projectId);
+                  return (
+                    <DraggableTaskItem
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      onToggleComplete={onToggleComplete}
+                      onDelete={onDeleteTask}
+                      onClick={onEditTask}
+                      onScheduleToday={onScheduleToday}
+                      showScheduleButton={true}
+                      projectName={project?.name}
+                    />
+                  );
+                })}
                 {provided.placeholder}
               </div>
             )}

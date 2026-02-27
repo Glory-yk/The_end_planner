@@ -12,8 +12,8 @@ interface TaskApiResponse {
   duration: number | null;
   actualDuration: number | null;
   timerStartedAt: string | null;
-  mandalartGridIndex: number | null;
   mandalartCellIndex: number | null;
+  projectId: string | null;
   createdAt: string;
   updatedAt: string;
   focusSessions?: FocusSession[];
@@ -30,6 +30,7 @@ const mapApiToTask = (apiTask: TaskApiResponse): Task => ({
   duration: apiTask.duration || undefined,
   actualDuration: apiTask.actualDuration || undefined,
   timerStartedAt: apiTask.timerStartedAt || undefined,
+  projectId: apiTask.projectId || undefined,
   mandalartRef: apiTask.mandalartGridIndex !== null && apiTask.mandalartCellIndex !== null
     ? { gridIndex: apiTask.mandalartGridIndex, cellIndex: apiTask.mandalartCellIndex }
     : undefined,
@@ -53,6 +54,10 @@ const mapTaskToApi = (task: Partial<Task>) => {
   if (task.mandalartRef !== undefined) {
     apiData.mandalartGridIndex = task.mandalartRef?.gridIndex ?? null;
     apiData.mandalartCellIndex = task.mandalartRef?.cellIndex ?? null;
+  }
+
+  if (task.projectId !== undefined) {
+    apiData.projectId = task.projectId || null;
   }
 
   return apiData;

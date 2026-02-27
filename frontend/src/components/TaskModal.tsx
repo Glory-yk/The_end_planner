@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Task } from '../types/task';
+import { useProjects } from '../contexts/ProjectsContext';
 
 interface TaskModalProps {
   task: Task | null;
@@ -7,7 +8,7 @@ interface TaskModalProps {
   onClose: () => void;
   onSave: (
     id: string,
-    data: { title: string; description: string | null; scheduledDate: string | null }
+    data: { title: string; description: string | null; scheduledDate: string | null; projectId: string | null }
   ) => void;
 }
 
@@ -15,12 +16,16 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
+  const [projectId, setProjectId] = useState<string | null>(null);
+
+  const { projects } = useProjects();
 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
       setScheduledDate(task.scheduledDate || '');
+      setProjectId(task.projectId || null);
     }
   }, [task]);
 
@@ -31,6 +36,7 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
         title: title.trim(),
         description: description.trim() || null,
         scheduledDate: scheduledDate || null,
+        projectId: projectId,
       });
       onClose();
     }
@@ -91,6 +97,24 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Project
+              </label>
+              <select
+                value={projectId || ''}
+                onChange={(e) => setProjectId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-700 disabled:bg-gray-50"
+              >
+                <option value="">Inbox</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

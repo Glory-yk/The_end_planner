@@ -22,6 +22,9 @@ export class TasksService {
     const task = this.taskRepository.create({
       ...createTaskDto,
       userId,
+      projectId: createTaskDto.projectId || null,
+      priority: createTaskDto.priority !== undefined ? createTaskDto.priority : 1,
+      indent: createTaskDto.indent !== undefined ? createTaskDto.indent : 1,
       scheduledDate: createTaskDto.scheduledDate || null,
     });
     const savedTask = await this.taskRepository.save(task);
@@ -51,14 +54,14 @@ export class TasksService {
       const tasks = await this.taskRepository.find({
         where: { userId, scheduledDate: date },
         order: { createdAt: 'ASC' },
-        relations: ['focusSessions'],
+        relations: ['focusSessions', 'project'],
       });
       return tasks.map(task => this.calculateActualDuration(task));
     }
     const tasks = await this.taskRepository.find({
       where: { userId },
       order: { createdAt: 'ASC' },
-      relations: ['focusSessions'],
+      relations: ['focusSessions', 'project'],
     });
     return tasks.map(task => this.calculateActualDuration(task));
   }
@@ -80,7 +83,7 @@ export class TasksService {
     const tasks = await this.taskRepository.find({
       where: { userId, scheduledDate: IsNull() },
       order: { createdAt: 'ASC' },
-      relations: ['focusSessions'],
+      relations: ['focusSessions', 'project'],
     });
     return tasks.map(task => this.calculateActualDuration(task));
   }
@@ -97,7 +100,7 @@ export class TasksService {
         scheduledDate: Between(startDate, endDate),
       },
       order: { scheduledDate: 'ASC', createdAt: 'ASC' },
-      relations: ['focusSessions'],
+      relations: ['focusSessions', 'project'],
     });
     return tasks.map(task => this.calculateActualDuration(task));
   }
@@ -105,7 +108,7 @@ export class TasksService {
   async findOne(userId: string, id: string): Promise<Task> {
     const task = await this.taskRepository.findOne({
       where: { id },
-      relations: ['focusSessions']
+      relations: ['focusSessions', 'project']
     });
     if (!task) {
       throw new NotFoundException(`Task with ID "${id}" not found`);
@@ -118,6 +121,15 @@ export class TasksService {
 
   async update(userId: string, id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
     const task = await this.findOne(userId, id);
+    if (updateTaskDto.projectId !== undefined) {
+      task.projectId = updateTaskDto.projectId;
+    }
+    if (updateTaskDto.priority !== undefined && updateTaskDto.priority !== null) {
+      task.priority = updateTaskDto.priority;
+    }
+    if (updateTaskDto.indent !== undefined && updateTaskDto.indent !== null) {
+      task.indent = updateTaskDto.indent;
+    }
     Object.assign(task, updateTaskDto);
     const savedTask = await this.taskRepository.save(task);
 

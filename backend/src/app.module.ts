@@ -10,6 +10,8 @@ import { User } from './auth/entities/user.entity';
 import { FocusSession } from './tasks/entities/focus-session.entity';
 import { Mandalart } from './mandalart/entities/mandalart.entity';
 import { AppController } from './app.controller';
+import { ProjectsModule } from './projects/projects.module';
+import { Project } from './projects/entities/project.entity';
 
 @Module({
   imports: [
@@ -22,7 +24,6 @@ import { AppController } from './app.controller';
         const dbHost = configService.get('DB_HOST');
         const url = configService.get('DATABASE_URL');
 
-        // Railway 개별 환경변수가 있으면 사용
         if (dbHost) {
           console.log(`Using individual DB variables. Host: ${dbHost}`);
           const isLocal = dbHost === 'localhost' || dbHost === '127.0.0.1';
@@ -34,31 +35,28 @@ import { AppController } from './app.controller';
             username: configService.get<string>('DB_USERNAME', 'postgres'),
             password: configService.get<string>('DB_PASSWORD'),
             database: configService.get<string>('DB_DATABASE', 'railway'),
-            entities: [Task, User, FocusSession, Mandalart],
+            entities: [Task, User, FocusSession, Mandalart, Project],
             synchronize: true,
-            // Railway 내부 네트워크는 SSL 불필요, 로컬도 SSL 불필요
             ssl: isInternal ? false : { rejectUnauthorized: false },
           };
         }
 
-        // DATABASE_URL이 있으면 사용
         if (url) {
           console.log('Using DATABASE_URL for Postgres connection.');
           return {
             type: 'postgres' as const,
             url,
-            entities: [Task, User, FocusSession, Mandalart],
+            entities: [Task, User, FocusSession, Mandalart, Project],
             synchronize: true,
             ssl: { rejectUnauthorized: false },
           };
         }
 
-        // 로컬 개발용 SQLite fallback
         console.warn('No database configuration found. Using SQLite for local development.');
         return {
           type: 'sqlite' as const,
           database: 'database.sqlite',
-          entities: [Task, User, FocusSession, Mandalart],
+          entities: [Task, User, FocusSession, Mandalart, Project],
           synchronize: true,
         };
       },
@@ -68,6 +66,7 @@ import { AppController } from './app.controller';
     TasksModule,
     MandalartModule,
     CalendarModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
 })

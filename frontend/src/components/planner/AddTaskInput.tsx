@@ -3,13 +3,18 @@ import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
+import { useProjects } from '@/contexts/ProjectsContext';
+
 interface AddTaskInputProps {
-    onAdd: (title: string, time?: string) => void;
+    onAdd: (title: string, time?: string, projectId?: string) => void;
+    defaultProjectId?: string;
 }
 
-export const AddTaskInput = ({ onAdd }: AddTaskInputProps) => {
+export const AddTaskInput = ({ onAdd, defaultProjectId }: AddTaskInputProps) => {
     const [title, setTitle] = useState('');
     const [isFocused, setIsFocused] = useState(false);
+    const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(defaultProjectId);
+    const { projects } = useProjects();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,7 +43,7 @@ export const AddTaskInput = ({ onAdd }: AddTaskInputProps) => {
             }
         }
 
-        onAdd(finalTitle, timeStr);
+        onAdd(finalTitle, timeStr, selectedProjectId);
         setTitle('');
     };
 
@@ -78,6 +83,51 @@ export const AddTaskInput = ({ onAdd }: AddTaskInputProps) => {
                     <Plus className="w-5 h-5" />
                 </motion.button>
             </form>
+
+            <AnimatePresence>
+                {isFocused && projects.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-2"
+                    >
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedProjectId(undefined)}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                                    !selectedProjectId
+                                        ? "bg-gray-100 border-gray-200 text-gray-800 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200"
+                                        : "bg-white border-gray-100 text-gray-500 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-700"
+                                )}
+                            >
+                                Inbox
+                            </button>
+                            {projects.map(project => (
+                                <button
+                                    key={project.id}
+                                    type="button"
+                                    onClick={() => setSelectedProjectId(project.id)}
+                                    className={clsx(
+                                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border flex items-center gap-1.5",
+                                        selectedProjectId === project.id
+                                            ? "bg-primary/10 border-primary/20 text-primary dark:bg-primary/20 dark:border-primary/30"
+                                            : "bg-white border-gray-100 text-gray-500 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-700"
+                                    )}
+                                >
+                                    <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: project.color }}
+                                    />
+                                    {project.name}
+                                </button>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };

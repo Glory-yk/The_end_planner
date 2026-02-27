@@ -3,12 +3,13 @@ import { Droppable } from '@hello-pangea/dnd';
 import { Task } from '../types/task';
 import DraggableTaskItem from './DraggableTaskItem';
 import QuickAddInput from './QuickAddInput';
+import { useProjects } from '../contexts/ProjectsContext';
 
 interface DailyPlannerPanelProps {
   tasks: Task[];
   selectedDate: Date;
   onDateChange: (date: Date) => void;
-  onAddTask: (title: string) => void;
+  onAddTask: (title: string, projectId?: string) => void;
   onToggleComplete: (id: string, isCompleted: boolean) => void;
   onDeleteTask: (id: string) => void;
   onEditTask: (task: Task) => void;
@@ -23,6 +24,7 @@ const DailyPlannerPanel = ({
   onDeleteTask,
   onEditTask,
 }: DailyPlannerPanelProps) => {
+  const { projects } = useProjects();
   const handlePrev = () => onDateChange(subDays(selectedDate, 1));
   const handleNext = () => onDateChange(addDays(selectedDate, 1));
   const handleToday = () => onDateChange(new Date());
@@ -53,11 +55,10 @@ const DailyPlannerPanel = ({
             </button>
             <button
               onClick={handleToday}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                isToday(selectedDate)
-                  ? 'bg-primary-100 text-primary-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${isToday(selectedDate)
+                ? 'bg-primary-100 text-primary-700'
+                : 'text-gray-600 hover:bg-gray-100'
+                }`}
             >
               Today
             </button>
@@ -87,7 +88,7 @@ const DailyPlannerPanel = ({
       </div>
 
       <div className="p-4">
-        <QuickAddInput onAdd={onAddTask} placeholder="Add task for this day..." />
+        <QuickAddInput onAdd={(title, projectId) => onAddTask(title, projectId)} placeholder="Add task for this day..." showProjectSelector />
       </div>
 
       <Droppable droppableId="daily-planner">
@@ -95,9 +96,8 @@ const DailyPlannerPanel = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 overflow-y-auto px-4 pb-4 transition-colors ${
-              snapshot.isDraggingOver ? 'bg-blue-50' : ''
-            }`}
+            className={`flex-1 overflow-y-auto px-4 pb-4 transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50' : ''
+              }`}
           >
             {tasks.length === 0 && !snapshot.isDraggingOver ? (
               <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -119,16 +119,20 @@ const DailyPlannerPanel = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {tasks.map((task, index) => (
-                  <DraggableTaskItem
-                    key={task.id}
-                    task={task}
-                    index={index}
-                    onToggleComplete={onToggleComplete}
-                    onDelete={onDeleteTask}
-                    onClick={onEditTask}
-                  />
-                ))}
+                {tasks.map((task, index) => {
+                  const project = projects.find(p => p.id === task.projectId);
+                  return (
+                    <DraggableTaskItem
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      onToggleComplete={onToggleComplete}
+                      onDelete={onDeleteTask}
+                      onClick={onEditTask}
+                      projectName={project?.name}
+                    />
+                  );
+                })}
                 {provided.placeholder}
               </div>
             )}

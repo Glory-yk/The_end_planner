@@ -26,6 +26,9 @@ export interface Task {
   description?: string;
   isCompleted: boolean;
   scheduledDate: string | null; // ISO date string 'YYYY-MM-DD' or null
+  projectId?: string | null;
+  priority?: number;
+  indent?: number;
   createdAt: string;
   startTime?: string; // 'HH:mm' for schedule view
   duration?: number; // in minutes (planned duration)

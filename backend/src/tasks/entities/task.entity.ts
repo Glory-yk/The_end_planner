@@ -9,6 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
+import { Project } from '../../projects/entities/project.entity';
 import { FocusSession } from './focus-session.entity';
 
 @Entity('tasks')
@@ -23,6 +24,13 @@ export class Task {
   @JoinColumn({ name: 'userId' })
   user: User;
 
+  @Column({ nullable: true })
+  projectId: string | null;
+
+  @ManyToOne(() => Project, (project) => project.tasks, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'projectId' })
+  project: Project | null;
+
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
@@ -31,6 +39,12 @@ export class Task {
 
   @Column({ type: 'boolean', default: false })
   isCompleted: boolean;
+
+  @Column({ type: 'int', default: 1 })
+  priority: number;
+
+  @Column({ type: 'int', default: 1 })
+  indent: number;
 
   @Column({ type: 'date', nullable: true })
   scheduledDate: string | null;

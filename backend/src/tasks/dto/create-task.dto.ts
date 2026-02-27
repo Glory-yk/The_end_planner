@@ -44,4 +44,16 @@ export class CreateTaskDto {
   @IsInt()
   @IsOptional()
   mandalartCellIndex?: number;
+
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
+  @IsInt()
+  @IsOptional()
+  priority?: number;
+
+  @IsInt()
+  @IsOptional()
+  indent?: number;
 }

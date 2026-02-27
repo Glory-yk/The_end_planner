@@ -207,9 +207,12 @@ export const AppContent = () => {
     const [quickAddTime, setQuickAddTime] = useState<string | null>(null);
     const [quickAddDuration, setQuickAddDuration] = useState<number | undefined>(undefined);
 
-    const tasks = getTasksForDate(selectedDate);
+    const handleAddTask = (title: string, time?: string, projectId?: string) => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        addTask(title, dateStr, time, undefined, undefined, projectId);
+    };
 
-    const handleAddTask = (title: string, time?: string, duration?: number) => {
+    const handleAddTaskWithDuration = (title: string, time?: string, duration?: number) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         addTask(title, dateStr, time, undefined, duration);
     };
@@ -405,7 +408,7 @@ export const AppContent = () => {
                     setQuickAddTime(null);
                     setQuickAddDuration(undefined);
                 }}
-                onAdd={handleAddTask}
+                onAdd={handleAddTaskWithDuration}
             />
 
             <TaskPickerModal
