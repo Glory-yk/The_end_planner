@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -111,16 +111,12 @@ export const AddTaskInput = ({ onAdd, defaultProjectId }: AddTaskInputProps) => 
                                     type="button"
                                     onClick={() => setSelectedProjectId(project.id)}
                                     className={clsx(
-                                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border flex items-center gap-1.5",
+                                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
                                         selectedProjectId === project.id
                                             ? "bg-primary/10 border-primary/20 text-primary dark:bg-primary/20 dark:border-primary/30"
                                             : "bg-white border-gray-100 text-gray-500 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-700"
                                     )}
                                 >
-                                    <span
-                                        className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: project.color }}
-                                    />
                                     {project.name}
                                 </button>
                             ))}
