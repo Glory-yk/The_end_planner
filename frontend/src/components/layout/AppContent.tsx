@@ -203,10 +203,13 @@ export const AppContent = () => {
     const [mandalartDrawerOpen, setMandalartDrawerOpen] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const tasks = getTasksForDate(selectedDate);
     const [viewMode, setViewMode] = useState<ViewMode>('today');
     const [quickAddTime, setQuickAddTime] = useState<string | null>(null);
     const [quickAddDuration, setQuickAddDuration] = useState<number | undefined>(undefined);
+    const [taskPickerTime, setTaskPickerTime] = useState<string | null>(null);
+
+    const tasks = getTasksForDate(selectedDate);
+    const unscheduledTasks = tasks.filter(t => !t.startTime);
 
     const handleAddTask = (title: string, time?: string, projectId?: string) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -222,9 +225,6 @@ export const AppContent = () => {
         setQuickAddTime(startTime);
         setQuickAddDuration(duration);
     };
-
-    const [taskPickerTime, setTaskPickerTime] = useState<string | null>(null);
-    const unscheduledTasks = tasks.filter(t => !t.startTime);
 
     const handleOpenTaskPicker = (time: string) => {
         setTaskPickerTime(time);
