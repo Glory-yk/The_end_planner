@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 export const LoginPage = () => {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, testLogin } = useAuth();
 
   if (isLoading) {
     return (
@@ -46,11 +46,7 @@ export const LoginPage = () => {
             Google로 로그인
           </button>
           <button
-            onClick={(e) => {
-              // @ts-ignore - testLogin 훅 타입 호환성 무시
-              const auth = require('@/contexts/AuthContext').useAuth();
-              if (auth.testLogin) auth.testLogin();
-            }}
+            onClick={testLogin}
             className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
             개발용 우회 로그인 (테스트 계정)
