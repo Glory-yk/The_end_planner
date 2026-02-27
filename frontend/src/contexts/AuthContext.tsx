@@ -137,6 +137,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const testLogin = () => {
+    const fakeToken = "dummy_test_token";
+    const fakeUser = {
+      id: "test-user-id",
+      email: "test@example.com",
+      name: "테스트 유저"
+    };
+    setSafeLocalStorageItem(TOKEN_KEY, fakeToken);
+    setToken(fakeToken);
+    setUser(fakeUser);
+  };
+
   const logout = () => {
     removeSafeLocalStorageItem(TOKEN_KEY);
     setToken(null);

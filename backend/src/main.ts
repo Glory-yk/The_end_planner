@@ -16,18 +16,22 @@ async function bootstrap() {
     app.use(urlencoded({ extended: true, limit: '50mb' }));
 
     // Configure CORS for production
-    const allowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
-      : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const allowedOriginsStr = process.env.CORS_ORIGINS || '';
 
-    console.log('Configuring CORS with origins:', allowedOrigins);
+    console.log('Configuring CORS with custom origins or default fallbacks');
 
     app.enableCors({
       origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin)) {
+        // Allow any localhost, any 127.0.0.1, or any github.dev/app.github.dev (Codespaces) URLs
+        if (
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1') ||
+          origin.includes('github.dev') ||
+          (allowedOriginsStr && allowedOriginsStr.includes(origin))
+        ) {
           callback(null, true);
         } else {
           console.log('CORS blocked origin:', origin);

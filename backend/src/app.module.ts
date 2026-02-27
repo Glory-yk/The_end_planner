@@ -25,7 +25,8 @@ import { AppController } from './app.controller';
         // Railway 개별 환경변수가 있으면 사용
         if (dbHost) {
           console.log(`Using individual DB variables. Host: ${dbHost}`);
-          const isInternal = dbHost.includes('.railway.internal');
+          const isLocal = dbHost === 'localhost' || dbHost === '127.0.0.1';
+          const isInternal = dbHost.includes('.railway.internal') || isLocal;
           return {
             type: 'postgres' as const,
             host: dbHost as string,
@@ -35,7 +36,7 @@ import { AppController } from './app.controller';
             database: configService.get<string>('DB_DATABASE', 'railway'),
             entities: [Task, User, FocusSession, Mandalart],
             synchronize: true,
-            // Railway 내부 네트워크는 SSL 불필요
+            // Railway 내부 네트워크는 SSL 불필요, 로컬도 SSL 불필요
             ssl: isInternal ? false : { rejectUnauthorized: false },
           };
         }
