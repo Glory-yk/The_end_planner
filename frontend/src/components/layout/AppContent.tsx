@@ -203,6 +203,7 @@ export const AppContent = () => {
     const [mandalartDrawerOpen, setMandalartDrawerOpen] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const tasks = getTasksForDate(selectedDate);
     const [viewMode, setViewMode] = useState<ViewMode>('today');
     const [quickAddTime, setQuickAddTime] = useState<string | null>(null);
     const [quickAddDuration, setQuickAddDuration] = useState<number | undefined>(undefined);
