@@ -212,18 +212,22 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         mandalartSyncTimer.current = setTimeout(async () => {
             try {
                 setMandalartSyncing(true);
-                console.log('Syncing Mandalart data, length:', mandalartData.length, 'sample:', JSON.stringify(mandalartData).slice(0, 100));
+                console.log('Syncing Mandalart data, length:', mandalartData.length);
                 if (mandalartData.length === 0) {
                     console.warn('Skipping sync: mandalartData is empty');
                     setMandalartSyncing(false);
                     return;
                 }
                 await mandalartApi.update(mandalartData);
-                console.log('Mandalart synced to server');
-            } catch (err) {
-                console.error('Failed to sync mandalart to server:', err);
-                // Temporary: Alert the user so they know save failed
-                alert('Mandalart 저장 실패! 데이터가 커서 저장되지 않았을 수 있습니다. 관리자에게 문의하세요.');
+                console.log('Mandalart synced to server successfully');
+            } catch (err: any) {
+                // Network error = backend unreachable (e.g. ngrok not running, backend offline)
+                // Data is still safely stored in localStorage above, so no data loss.
+                if (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error') {
+                    console.warn('Mandalart server sync skipped: backend unreachable. Data saved in localStorage.');
+                } else {
+                    console.error('Failed to sync mandalart to server:', err?.response?.data || err?.message || err);
+                }
             } finally {
                 setMandalartSyncing(false);
             }
