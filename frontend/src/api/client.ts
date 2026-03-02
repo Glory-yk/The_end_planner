@@ -8,6 +8,8 @@ const client = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
+    // Skip ngrok's browser warning page when using ngrok tunnel
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
