@@ -10,6 +10,8 @@ const client = axios.create({
     'Content-Type': 'application/json',
     // Skip ngrok's browser warning page when using ngrok tunnel
     'ngrok-skip-browser-warning': 'true',
+    // Skip localtunnel's confirmation page
+    'Bypass-Tunnel-Reminder': 'true',
   },
 });
 
