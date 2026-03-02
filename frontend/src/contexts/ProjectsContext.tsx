@@ -23,7 +23,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const { user, isProfileSetupComplete } = useAuth(); // or your preferred auth hook path
 
     const refreshProjects = useCallback(async () => {
-        if (!user || (isProfileSetupComplete !== undefined && !isProfileSetupComplete)) return;
+        if (!user) return;
 
         setIsLoading(true);
         try {
@@ -43,20 +43,35 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }, [refreshProjects]);
 
     const addProject = async (name: string) => {
-        const newProject = await createProject(name);
-        setProjects((prev: Project[]) => [newProject, ...prev]);
-        return newProject;
+        try {
+            const newProject = await createProject(name);
+            setProjects((prev: Project[]) => [newProject, ...prev]);
+            return newProject;
+        } catch (err) {
+            console.error('Failed to create project:', err);
+            throw err;
+        }
     };
 
     const editProject = async (id: string, name: string) => {
-        const updated = await updateProject(id, name);
-        setProjects((prev: Project[]) => prev.map((p: Project) => p.id === id ? updated : p));
-        return updated;
+        try {
+            const updated = await updateProject(id, name);
+            setProjects((prev: Project[]) => prev.map((p: Project) => p.id === id ? updated : p));
+            return updated;
+        } catch (err) {
+            console.error('Failed to edit project:', err);
+            throw err;
+        }
     };
 
     const removeProject = async (id: string) => {
-        await deleteProject(id);
-        setProjects((prev: Project[]) => prev.filter((p: Project) => p.id !== id));
+        try {
+            await deleteProject(id);
+            setProjects((prev: Project[]) => prev.filter((p: Project) => p.id !== id));
+        } catch (err) {
+            console.error('Failed to remove project:', err);
+            throw err;
+        }
     };
 
     return (
