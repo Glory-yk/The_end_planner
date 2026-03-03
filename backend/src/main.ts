@@ -39,7 +39,7 @@ async function bootstrap() {
         }
       },
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder', 'X-Requested-With'],
       credentials: true,
     });
 
