@@ -57,6 +57,9 @@ dev-debug.log
 # tasks.json
 # tasks/ 
 
+# Personal data (Todoist CSV exports — do NOT commit)
+*.csv
+
 # Binaries
 *.apk
 *.zip
