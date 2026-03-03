@@ -250,24 +250,27 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
 
     // Google Calendar Sync
     const syncWithGoogleCalendar = useCallback(async () => {
-        console.log('[Calendar] Starting Google Calendar sync...');
         try {
             setIsLoading(true);
-            console.log('[Calendar] Calling calendarApi.sync()...');
-            await calendarApi.sync();
-            console.log('[Calendar] Calling calendarApi.getAll()...');
-            // Fetch for the whole year to ensure visibility
+            // sync() - Google 토큰 없으면 noGoogleToken 반환 (에러 아님)
+            const syncResult = await calendarApi.sync();
+            if (syncResult?.noGoogleToken) {
+                // Google 로그인 계정 아님 - 조용히 스킵
+                return;
+            }
+
             const now = new Date();
             const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
             const endOfYear = new Date(now.getFullYear(), 11, 31).toISOString();
-            const events = await calendarApi.getAll(startOfYear, endOfYear);
-            console.log(`[Calendar] Got ${events.length} events`);
-            if (events.length > 0) {
-                console.log('Sample event:', events[0]);
-            }
-            setGoogleEvents(events);
+            const eventsResult = await calendarApi.getAll(startOfYear, endOfYear);
+            setGoogleEvents(eventsResult);
             await refreshTasks();
-        } catch (err) {
+        } catch (err: any) {
+            // Google 토큰 없는 경우(403, 500) 조용히 무시 - 일반 사용자에게 노이즈 없음
+            const status = err?.response?.status;
+            if (status === 403 || status === 401 || status === 500) {
+                return; // silently skip
+            }
             console.error('[Calendar] Failed to sync with Google Calendar:', err);
         } finally {
             setIsLoading(false);

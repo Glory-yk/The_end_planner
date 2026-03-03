@@ -41,6 +41,10 @@ export class CalendarController {
             return { events };
         } catch (error: any) {
             console.error('Failed to get calendar events:', error);
+            // Google 토큰 없음 (테스트 계정 등) → 빈 배열 반환, 에러 아님
+            if (error.message?.includes('No Google access token')) {
+                return { events: [], noGoogleToken: true };
+            }
             if (error.message?.includes('Token expired')) {
                 throw new HttpException(
                     'Google re-authentication required',
@@ -63,8 +67,11 @@ export class CalendarController {
         try {
             const result = await this.calendarService.syncAllTasks(req.user.id);
             return { message: 'Calendar sync completed', ...result };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to sync to calendar:', error);
+            if (error.message?.includes('No Google access token')) {
+                return { message: 'Google 계정 연결 필요', synced: 0, failed: 0, noGoogleToken: true };
+            }
             throw new HttpException(
                 'Failed to sync to calendar',
                 HttpStatus.INTERNAL_SERVER_ERROR,
