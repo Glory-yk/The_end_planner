@@ -4,6 +4,8 @@ import type { Task } from '../tasks/types';
 export interface Project {
     id: string;
     name: string;
+    color: string | null;
+    sortOrder: number;
     userId: string;
     tasks?: Task[];
     createdAt: string;
@@ -25,11 +27,22 @@ export const createProject = async (name: string): Promise<Project> => {
     return data;
 };
 
-export const updateProject = async (id: string, name: string): Promise<Project> => {
-    const { data } = await apiClient.patch<Project>(`/projects/${id}`, { name });
+export const updateProject = async (id: string, name: string, color?: string | null): Promise<Project> => {
+    const { data } = await apiClient.patch<Project>(`/projects/${id}`, { name, color });
     return data;
 };
 
 export const deleteProject = async (id: string): Promise<void> => {
     await apiClient.delete(`/projects/${id}`);
+};
+
+// 순서 일괄 업데이트
+export const reorderProjects = async (orderedIds: string[]): Promise<void> => {
+    await apiClient.patch('/projects/reorder/batch', { orderedIds });
+};
+
+// 색상만 업데이트
+export const updateProjectColor = async (id: string, color: string | null): Promise<Project> => {
+    const { data } = await apiClient.patch<Project>(`/projects/${id}`, { color });
+    return data;
 };

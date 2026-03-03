@@ -33,4 +33,10 @@ export class ProjectsController {
     remove(@Request() req, @Param('id') id: string) {
         return this.projectsService.remove(id, req.user.id);
     }
+
+    // 순서 일괄 업데이트: PATCH /projects/reorder { orderedIds: ['id1','id2',...] }
+    @Patch('reorder/batch')
+    reorder(@Request() req, @Body() body: { orderedIds: string[] }) {
+        return this.projectsService.reorder(req.user.id, body.orderedIds);
+    }
 }

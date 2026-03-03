@@ -19,6 +19,12 @@ export class Project {
     @Column({ type: 'varchar', length: 255 })
     name: string;
 
+    @Column({ type: 'varchar', length: 20, nullable: true, default: null })
+    color: string | null;
+
+    @Column({ type: 'int', default: 0 })
+    sortOrder: number;
+
     @Column()
     userId: string;
 

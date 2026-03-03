@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Project, fetchProjects, createProject, updateProject, deleteProject } from '@/api/projects/projects';
+import { Project, fetchProjects, createProject, updateProject, deleteProject, reorderProjects, updateProjectColor } from '@/api/projects/projects';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProjectsContextType {
@@ -10,7 +10,9 @@ interface ProjectsContextType {
     error: Error | null;
     addProject: (name: string) => Promise<Project>;
     editProject: (id: string, name: string) => Promise<Project>;
+    setProjectColor: (id: string, color: string | null) => Promise<void>;
     removeProject: (id: string) => Promise<void>;
+    reorderProjectList: (orderedIds: string[]) => Promise<void>;
     refreshProjects: () => Promise<void>;
 }
 
@@ -20,11 +22,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
-    const { user, isProfileSetupComplete } = useAuth(); // or your preferred auth hook path
+    const { user, isProfileSetupComplete } = useAuth();
 
     const refreshProjects = useCallback(async () => {
         if (!user) return;
-
         setIsLoading(true);
         try {
             const data = await fetchProjects();
@@ -45,7 +46,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const addProject = async (name: string) => {
         try {
             const newProject = await createProject(name);
-            setProjects((prev: Project[]) => [newProject, ...prev]);
+            setProjects((prev: Project[]) => [...prev, newProject]);
             return newProject;
         } catch (err) {
             console.error('Failed to create project:', err);
@@ -64,6 +65,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const setProjectColor = async (id: string, color: string | null) => {
+        try {
+            const updated = await updateProjectColor(id, color);
+            setProjects((prev: Project[]) => prev.map((p: Project) => p.id === id ? updated : p));
+        } catch (err) {
+            console.error('Failed to update project color:', err);
+            throw err;
+        }
+    };
+
     const removeProject = async (id: string) => {
         try {
             await deleteProject(id);
@@ -71,6 +82,20 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         } catch (err) {
             console.error('Failed to remove project:', err);
             throw err;
+        }
+    };
+
+    const reorderProjectList = async (orderedIds: string[]) => {
+        // 낙관적 업데이트: UI 즉시 반영
+        setProjects(prev => {
+            const map = new Map(prev.map(p => [p.id, p]));
+            return orderedIds.map((id, i) => ({ ...map.get(id)!, sortOrder: i })).filter(Boolean);
+        });
+        try {
+            await reorderProjects(orderedIds);
+        } catch (err) {
+            console.error('Failed to reorder projects:', err);
+            await refreshProjects(); // 실패 시 서버 상태로 복원
         }
     };
 
@@ -82,8 +107,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
                 error,
                 addProject,
                 editProject,
+                setProjectColor,
                 removeProject,
-                refreshProjects
+                reorderProjectList,
+                refreshProjects,
             }}
         >
             {children}

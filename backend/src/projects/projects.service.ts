@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -13,9 +13,16 @@ export class ProjectsService {
     ) { }
 
     async create(userId: string, createProjectDto: CreateProjectDto): Promise<Project> {
+        // sortOrder: 현재 최대값 + 1
+        const maxOrder = await this.projectRepository
+            .createQueryBuilder('p')
+            .select('MAX(p.sortOrder)', 'max')
+            .where('p.userId = :userId', { userId })
+            .getRawOne();
         const project = this.projectRepository.create({
             ...createProjectDto,
             userId,
+            sortOrder: (maxOrder?.max ?? -1) + 1,
         });
         return await this.projectRepository.save(project);
     }
@@ -23,7 +30,7 @@ export class ProjectsService {
     async findAll(userId: string): Promise<Project[]> {
         return await this.projectRepository.find({
             where: { userId },
-            order: { createdAt: 'DESC' },
+            order: { sortOrder: 'ASC', createdAt: 'DESC' },
         });
     }
 
@@ -46,5 +53,20 @@ export class ProjectsService {
     async remove(id: string, userId: string): Promise<void> {
         const project = await this.findOne(id, userId);
         await this.projectRepository.remove(project);
+    }
+
+    // 순서 일괄 업데이트: orderedIds = [id1, id2, id3, ...]
+    async reorder(userId: string, orderedIds: string[]): Promise<void> {
+        const projects = await this.projectRepository.find({
+            where: { id: In(orderedIds), userId },
+        });
+        const updates = orderedIds.map((id, index) => {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                project.sortOrder = index;
+            }
+            return project;
+        }).filter(Boolean) as Project[];
+        await this.projectRepository.save(updates);
     }
 }
