@@ -9,7 +9,7 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -48,5 +48,18 @@ export class AuthController {
       name: req.user.name,
       picture: req.user.picture,
     };
+  }
+
+  // 테스트 로그인: 실제 DB에 테스트 유저를 생성하고 진짜 JWT 반환 (프로덕션 외 환경에서만 작동)
+  @Get('test-login')
+  async testLogin(@Res() res: Response) {
+    const node_env = process.env.NODE_ENV || 'development';
+    if (node_env === 'production') {
+      return res.status(403).json({ message: 'Not available in production' });
+    }
+
+    const testUser = await this.authService.getOrCreateTestUser();
+    const token = this.authService.generateToken(testUser);
+    return res.json({ token, user: { id: testUser.id, email: testUser.email, name: testUser.name } });
   }
 }

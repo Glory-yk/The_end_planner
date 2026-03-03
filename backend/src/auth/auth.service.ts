@@ -63,5 +63,20 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     return this.jwtService.sign(payload);
   }
+
+  async getOrCreateTestUser(): Promise<User> {
+    const testGoogleId = 'test-user-google-id';
+    let user = await this.userRepository.findOne({ where: { googleId: testGoogleId } });
+    if (!user) {
+      user = this.userRepository.create({
+        googleId: testGoogleId,
+        email: 'test@example.com',
+        name: '테스트 유저',
+        picture: null,
+      });
+      await this.userRepository.save(user);
+    }
+    return user;
+  }
 }
 

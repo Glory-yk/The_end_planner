@@ -157,19 +157,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const testLogin = () => {
-    const fakeToken = "dummy_test_token";
-    const fakeUser = {
-      id: "test-user-id",
-      email: "test@example.com",
-      name: "테스트 유저"
-    };
-    // 테스트 모드 플래그와 유저 데이터를 저장해 새로고침 시에도 유지
-    setSafeLocalStorageItem(TOKEN_KEY, fakeToken);
-    setSafeLocalStorageItem(TEST_MODE_KEY, 'true');
-    setSafeLocalStorageItem(TEST_USER_KEY, JSON.stringify(fakeUser));
-    setToken(fakeToken);
-    setUser(fakeUser);
+  const testLogin = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/test-login`);
+      if (!response.ok) throw new Error('Test login failed');
+      const data = await response.json();
+      setSafeLocalStorageItem(TOKEN_KEY, data.token);
+      // 테스트 모드 플래그 제거 - 이제 실제 JWT를 사용하므로 불필요
+      removeSafeLocalStorageItem(TEST_MODE_KEY);
+      removeSafeLocalStorageItem(TEST_USER_KEY);
+      setToken(data.token);
+      setUser(data.user);
+    } catch (error) {
+      console.error('Test login error:', error);
+      // 백엔드 연결 실패 시 로컬 폴백 (오프라인 테스트용)
+      const fakeUser = { id: 'test-user-id', email: 'test@example.com', name: '테스트 유저' };
+      setSafeLocalStorageItem(TOKEN_KEY, 'dummy_test_token');
+      setSafeLocalStorageItem(TEST_MODE_KEY, 'true');
+      setSafeLocalStorageItem(TEST_USER_KEY, JSON.stringify(fakeUser));
+      setToken('dummy_test_token');
+      setUser(fakeUser);
+    }
   };
 
   const logout = () => {
