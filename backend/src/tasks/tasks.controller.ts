@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   create(@Req() req: any, @Body() createTaskDto: CreateTaskDto) {
@@ -35,6 +35,11 @@ export class TasksController {
   @Get('brain-dump')
   findBrainDump(@Req() req: any) {
     return this.tasksService.findBrainDump(req.user.id);
+  }
+
+  @Get('completed/search')
+  searchCompleted(@Req() req: any, @Query('q') q?: string) {
+    return this.tasksService.searchCompleted(req.user.id, q || '');
   }
 
   @Get('week')

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, Between } from 'typeorm';
+import { Repository, IsNull, Between, ILike, Or } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { FocusSession } from './entities/focus-session.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -86,6 +86,31 @@ export class TasksService {
       relations: ['focusSessions', 'project'],
     });
     return tasks.map(task => this.calculateActualDuration(task));
+  }
+
+  async searchCompleted(userId: string, query: string): Promise<Task[]> {
+    const q = query.trim();
+    if (!q) {
+      // Return recent 50 completed tasks if no query
+      const tasks = await this.taskRepository.find({
+        where: { userId, isCompleted: true },
+        order: { updatedAt: 'DESC' },
+        take: 50,
+        relations: ['project'],
+      });
+      return tasks;
+    }
+
+    const tasks = await this.taskRepository.find({
+      where: [
+        { userId, isCompleted: true, title: ILike(`%${q}%`) },
+        { userId, isCompleted: true, description: ILike(`%${q}%`) },
+      ],
+      order: { updatedAt: 'DESC' },
+      take: 100,
+      relations: ['project'],
+    });
+    return tasks;
   }
 
   async findWeek(userId: string, startDate: string): Promise<Task[]> {

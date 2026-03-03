@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm init:*)",
       "Bash(npx tsc:*)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

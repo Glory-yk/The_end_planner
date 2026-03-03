@@ -113,6 +113,14 @@ export const taskApi = {
     await client.delete(`/tasks/${id}`);
   },
 
+  // Search completed tasks
+  async searchCompleted(query: string): Promise<Task[]> {
+    const response = await client.get<TaskApiResponse[]>(
+      `/tasks/completed/search?q=${encodeURIComponent(query)}`
+    );
+    return response.data.map(mapApiToTask);
+  },
+
   // Sync Wear OS timer session (Legacy or updated to use FocusSession internally)
   async syncWearSession(session: {
     title?: string;

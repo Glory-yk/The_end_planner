@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
     Calendar, Hexagon, CheckSquare, LogOut, Moon, Sun,
     ChevronLeft, ChevronRight, LayoutGrid,
-    Plus, Edit2, Trash2, Check, X, GripVertical, Palette
+    Plus, Edit2, Trash2, Check, X, GripVertical, Palette, CheckCircle2
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { clsx } from 'clsx';
@@ -14,6 +14,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { ViewMode } from '../planner/ViewToggle';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { Project } from '@/api/projects/projects';
+import CompletedSearchModal from '../completed/CompletedSearchModal';
 
 type AppView = 'planner' | 'mandalart' | 'project';
 
@@ -52,6 +53,7 @@ export const Sidebar = ({
     const { projects, addProject, editProject, setProjectColor, removeProject, reorderProjectList } = useProjects();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+    const [isCompletedSearchOpen, setIsCompletedSearchOpen] = useState(false);
 
     // 이름 편집
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -310,6 +312,13 @@ export const Sidebar = ({
             {/* Bottom Actions */}
             <div className="p-3 border-t border-gray-200 dark:border-slate-800 flex flex-col gap-1">
                 <button
+                    onClick={() => setIsCompletedSearchOpen(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                    <CheckCircle2 className="w-5 h-5" />
+                    {!isCollapsed && <span>완료된 할 일</span>}
+                </button>
+                <button
                     onClick={toggleDarkMode}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                 >
@@ -329,6 +338,10 @@ export const Sidebar = ({
                 isOpen={isProjectModalOpen}
                 onClose={() => setIsProjectModalOpen(false)}
                 onSubmit={async (name) => { await addProject(name); }}
+            />
+            <CompletedSearchModal
+                isOpen={isCompletedSearchOpen}
+                onClose={() => setIsCompletedSearchOpen(false)}
             />
         </div>
     );
