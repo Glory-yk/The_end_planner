@@ -33,6 +33,8 @@ export const useAuth = () => {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const TOKEN_KEY = 'auth_token';
+const TEST_MODE_KEY = 'test_mode';
+const TEST_USER_KEY = 'test_user_data';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,6 +43,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for token on mount
   useEffect(() => {
+    // 테스트 모드: 백엔드 호출 없이 로컬 데이터로 복원
+    const isTestMode = getSafeLocalStorageItem(TEST_MODE_KEY);
+    if (isTestMode === 'true') {
+      const savedUser = getSafeLocalStorageItem(TEST_USER_KEY);
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+          setToken('dummy_test_token');
+        } catch {
+          removeSafeLocalStorageItem(TEST_MODE_KEY);
+          removeSafeLocalStorageItem(TEST_USER_KEY);
+        }
+      }
+      setIsLoading(false);
+      return;
+    }
+
     const storedToken = getSafeLocalStorageItem(TOKEN_KEY);
     if (storedToken) {
       setToken(storedToken);
@@ -145,13 +164,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: "test@example.com",
       name: "테스트 유저"
     };
+    // 테스트 모드 플래그와 유저 데이터를 저장해 새로고침 시에도 유지
     setSafeLocalStorageItem(TOKEN_KEY, fakeToken);
+    setSafeLocalStorageItem(TEST_MODE_KEY, 'true');
+    setSafeLocalStorageItem(TEST_USER_KEY, JSON.stringify(fakeUser));
     setToken(fakeToken);
     setUser(fakeUser);
   };
 
   const logout = () => {
     removeSafeLocalStorageItem(TOKEN_KEY);
+    removeSafeLocalStorageItem(TEST_MODE_KEY);
+    removeSafeLocalStorageItem(TEST_USER_KEY);
     setToken(null);
     setUser(null);
   };

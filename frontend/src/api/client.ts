@@ -25,8 +25,12 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      window.location.href = '/';
+      // 테스트 모드일 때는 자동 로그아웃 하지 않음
+      const isTestMode = localStorage.getItem('test_mode');
+      if (isTestMode !== 'true') {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }
