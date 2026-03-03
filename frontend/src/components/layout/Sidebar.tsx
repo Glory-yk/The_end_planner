@@ -18,13 +18,16 @@ import { ViewMode } from '../planner/ViewToggle';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { Plus, ListTodo } from 'lucide-react';
 
-type AppView = 'planner' | 'mandalart';
+import { Project } from '@/api/projects/projects';
+
+type AppView = 'planner' | 'mandalart' | 'project';
 
 interface SidebarProps {
     currentView: AppView;
     currentViewMode: ViewMode;
     onViewChange: (view: AppView) => void;
     onViewModeChange: (mode: ViewMode) => void;
+    onProjectSelect: (project: Project) => void;
     user: any;
 }
 
@@ -33,6 +36,7 @@ export const Sidebar = ({
     currentViewMode,
     onViewChange,
     onViewModeChange,
+    onProjectSelect,
     user
 }: SidebarProps) => {
     const { logout } = useAuth();
@@ -169,14 +173,16 @@ export const Sidebar = ({
                         <button
                             key={project.id}
                             onClick={() => {
-                                // For now, just a placeholder. Later we filter tasks by project.
+                                onProjectSelect(project);
+                                onViewChange('project');
                             }}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'project'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                                }`}
                             title={project.name}
                         >
-                            <span className="w-5 h-5 flex items-center justify-center text-primary/70">
-                                #
-                            </span>
+                            <span className="w-5 h-5 flex items-center justify-center text-primary/70">#</span>
                             {!isCollapsed && <span className="truncate">{project.name}</span>}
                         </button>
                     ))}

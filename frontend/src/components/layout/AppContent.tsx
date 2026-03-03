@@ -34,6 +34,10 @@ import { Sidebar } from '@/components/layout/Sidebar';
 // Mandalart Components
 import { MandalartView } from '@/components/mandalart/MandalartView';
 
+// Project Components
+import { ProjectDetailView } from '@/components/projects/ProjectDetailView';
+import { Project } from '@/api/projects/projects';
+
 // Pomodoro Components
 import { FloatingTimer } from '@/components/pomodoro/FloatingTimer';
 import { usePomodoro } from '@/hooks/usePomodoro';
@@ -42,7 +46,7 @@ import { ThemeSelector } from '@/components/common/ThemeSelector';
 // Auth Photo
 import { AuthPhotoScreen } from '@/components/auth/AuthPhotoScreen';
 
-type AppView = 'planner' | 'mandalart';
+type AppView = 'planner' | 'mandalart' | 'project';
 
 export const AppContent = () => {
     const { user, logout } = useAuth();
@@ -199,6 +203,7 @@ export const AppContent = () => {
     };
 
     const [currentView, setCurrentView] = useState<AppView>('planner');
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [authPhotoOpen, setAuthPhotoOpen] = useState(false);
     const [mandalartDrawerOpen, setMandalartDrawerOpen] = useState(false);
 
@@ -459,6 +464,10 @@ export const AppContent = () => {
             currentViewMode={viewMode}
             onViewChange={setCurrentView}
             onViewModeChange={setViewMode}
+            onProjectSelect={(project) => {
+                setSelectedProject(project);
+                setCurrentView('project');
+            }}
             user={user}
         />
     );
@@ -505,7 +514,14 @@ export const AppContent = () => {
                     <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-0 md:px-8">
                         <div className="max-w-5xl mx-auto w-full h-full pb-20">
                             <AnimatePresence mode="wait">
-                                {currentView === 'planner' ? renderPlanner() : renderMandalart()}
+                                {currentView === 'project' && selectedProject ? (
+                                    <motion.div key="project" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
+                                        <ProjectDetailView
+                                            project={selectedProject}
+                                            onBack={() => setCurrentView('planner')}
+                                        />
+                                    </motion.div>
+                                ) : currentView === 'planner' ? renderPlanner() : renderMandalart()}
                             </AnimatePresence>
                         </div>
                     </div>

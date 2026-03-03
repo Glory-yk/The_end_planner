@@ -13,6 +13,7 @@ interface TaskApiResponse {
   actualDuration: number | null;
   timerStartedAt: string | null;
   mandalartCellIndex: number | null;
+  mandalartGridIndex: number | null;
   projectId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +69,11 @@ export const taskApi = {
   async getAll(date?: string): Promise<Task[]> {
     const url = date ? `/tasks?date=${date}` : '/tasks';
     const response = await client.get<TaskApiResponse[]>(url);
+    return response.data.map(mapApiToTask);
+  },
+
+  async getByProject(projectId: string): Promise<Task[]> {
+    const response = await client.get<TaskApiResponse[]>(`/tasks?projectId=${projectId}`);
     return response.data.map(mapApiToTask);
   },
   // Get brain dump (unscheduled) tasks
