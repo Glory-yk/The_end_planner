@@ -32,9 +32,15 @@ export class AuthController {
       // Mobile app callback
       res.redirect(`${redirectUri}?token=${token}`);
     } else {
-      // Web frontend callback
-      const frontendUrl =
-        this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+      // Web frontend callback - Codespaces 자동 감지
+      let frontendUrl = this.configService.get('FRONTEND_URL');
+      if (!frontendUrl) {
+        const codespaceName = process.env.CODESPACE_NAME;
+        const codespaceDomain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev';
+        frontendUrl = codespaceName
+          ? `https://${codespaceName}-3001.${codespaceDomain}`
+          : 'http://localhost:3001';
+      }
       res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
     }
   }
