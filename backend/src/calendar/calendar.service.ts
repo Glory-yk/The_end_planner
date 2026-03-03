@@ -19,6 +19,10 @@ export interface CalendarEvent {
         date?: string;
         timeZone?: string;
     };
+    reminders?: {
+        useDefault: boolean;
+        overrides?: Array<{ method: string; minutes: number }>;
+    };
 }
 
 @Injectable()
@@ -36,25 +40,87 @@ export class CalendarService {
     /**
      * Sync all tasks to Google Calendar
      */
-    async syncAllTasks(userId: string): Promise<void> {
-        const tasks = await this.taskRepository.find({ where: { userId } });
+    async syncAllTasks(userId: string): Promise<{ synced: number; failed: number }> {
+        const tasks = await this.taskRepository.find({
+            where: { userId },
+            relations: ['project'],
+        });
+        let synced = 0, failed = 0;
         for (const task of tasks) {
-            // Sync if not synced yet (and has scheduled date)
-            if (!task.googleEventId && task.scheduledDate) {
-                try {
-                    const eventId = await this.syncTaskToCalendar(userId, {
-                        title: task.title,
-                        scheduledDate: task.scheduledDate,
-                        startTime: task.startTime || undefined,
-                        duration: task.duration || undefined,
-                    });
-                    task.googleEventId = eventId;
-                    await this.taskRepository.save(task);
-                } catch (e) {
-                    console.error(`Failed to sync task ${task.id}`, e);
-                }
+            if (!task.scheduledDate) continue;
+            try {
+                const eventId = await this.syncTaskToCalendar(userId, {
+                    title: task.title,
+                    scheduledDate: task.scheduledDate,
+                    startTime: task.startTime || undefined,
+                    duration: task.duration || undefined,
+                    googleEventId: task.googleEventId || undefined,
+                    projectName: task.project?.name,
+                });
+                task.googleEventId = eventId;
+                await this.taskRepository.save(task);
+                synced++;
+            } catch (e) {
+                console.error(`Failed to sync task ${task.id}`, e);
+                failed++;
             }
         }
+        return { synced, failed };
+    }
+
+    /**
+     * Sync all tasks of a specific project
+     */
+    async syncProjectTasks(userId: string, projectId: string): Promise<{ synced: number; failed: number }> {
+        const tasks = await this.taskRepository.find({
+            where: { userId, projectId },
+            relations: ['project'],
+        });
+        let synced = 0, failed = 0;
+        for (const task of tasks) {
+            if (!task.scheduledDate) continue;
+            try {
+                const eventId = await this.syncTaskToCalendar(userId, {
+                    title: task.title,
+                    scheduledDate: task.scheduledDate,
+                    startTime: task.startTime || undefined,
+                    duration: task.duration || undefined,
+                    googleEventId: task.googleEventId || undefined,
+                    projectName: task.project?.name,
+                });
+                task.googleEventId = eventId;
+                await this.taskRepository.save(task);
+                synced++;
+            } catch (e) {
+                console.error(`Failed to sync task ${task.id}`, e);
+                failed++;
+            }
+        }
+        return { synced, failed };
+    }
+
+    /**
+     * Sync a single task by taskId
+     */
+    async syncSingleTask(userId: string, taskId: string): Promise<{ eventId: string }> {
+        const task = await this.taskRepository.findOne({
+            where: { id: taskId, userId },
+            relations: ['project'],
+        });
+        if (!task) throw new Error('Task not found');
+        if (!task.scheduledDate) throw new Error('Task has no scheduled date - please set a date first');
+
+        const eventId = await this.syncTaskToCalendar(userId, {
+            title: task.title,
+            scheduledDate: task.scheduledDate,
+            startTime: task.startTime || undefined,
+            duration: task.duration || undefined,
+            googleEventId: task.googleEventId || undefined,
+            projectName: task.project?.name,
+        });
+        task.googleEventId = eventId;
+        await this.taskRepository.save(task);
+        return { eventId };
     }
 
     /**
@@ -90,8 +156,6 @@ export class CalendarService {
         if (!response.ok) {
             const error = await response.text();
             console.error('Calendar API error:', error);
-
-            // If token expired, we might need to refresh
             if (response.status === 401) {
                 throw new Error('Token expired - re-authentication required');
             }
@@ -193,7 +257,7 @@ export class CalendarService {
     }
 
     /**
-     * Sync a task to Google Calendar
+     * Sync a task to Google Calendar (with reminders/alarms)
      */
     async syncTaskToCalendar(
         userId: string,
@@ -203,6 +267,7 @@ export class CalendarService {
             startTime?: string;
             duration?: number;
             googleEventId?: string;
+            projectName?: string;
         },
     ): Promise<string> {
         const timeZone = 'Asia/Seoul';
@@ -220,23 +285,40 @@ export class CalendarService {
             start = { dateTime: startDateTime, timeZone };
             end = { dateTime: endDateTime, timeZone };
         } else {
-            // All-day event
+            // All-day event: end = next day (Google Calendar convention)
+            const nextDay = new Date(task.scheduledDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            const nextDayStr = nextDay.toISOString().slice(0, 10);
+
             start = { date: task.scheduledDate };
-            end = { date: task.scheduledDate };
+            end = { date: nextDayStr };
         }
 
+        const eventSummary = task.projectName
+            ? `[${task.projectName}] ${task.title}`
+            : task.title;
+
         const event: CalendarEvent = {
-            summary: task.title,
+            summary: eventSummary,
+            description: task.projectName
+                ? `📁 프로젝트: ${task.projectName}\n\nThe End Planner에서 자동 동기화된 할 일입니다.`
+                : 'The End Planner에서 자동 동기화된 할 일입니다.',
             start,
             end,
+            // 알람: 팝업 10분 전, 이메일 30분 전
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: 'popup', minutes: 10 },
+                    { method: 'email', minutes: 30 },
+                ],
+            },
         };
 
         if (task.googleEventId) {
-            // Update existing event
             const updated = await this.updateEvent(userId, task.googleEventId, event);
             return updated.id!;
         } else {
-            // Create new event
             const created = await this.createEvent(userId, event);
             return created.id!;
         }

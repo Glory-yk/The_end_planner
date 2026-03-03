@@ -27,5 +27,17 @@ export const calendarApi = {
     sync: async () => {
         const response = await client.post('/calendar/sync');
         return response.data;
-    }
+    },
+
+    // 개별 태스크를 구글 캘린더에 동기화 (알람 포함)
+    syncTask: async (taskId: string) => {
+        const response = await client.post('/calendar/sync-task', { taskId });
+        return response.data as { message: string; eventId: string };
+    },
+
+    // 프로젝트 전체 태스크를 구글 캘린더에 동기화
+    syncProject: async (projectId: string) => {
+        const response = await client.post(`/calendar/sync-project/${projectId}`);
+        return response.data as { message: string; synced: number; failed: number };
+    },
 };
