@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
     Calendar, Hexagon, CheckSquare, LogOut, Moon, Sun,
     ChevronLeft, ChevronRight, LayoutGrid,
@@ -15,9 +14,9 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { ViewMode } from '../planner/ViewToggle';
 import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { Project } from '@/api/projects/projects';
-import CompletedSearchModal from '../completed/CompletedSearchModal';
 
-type AppView = 'planner' | 'mandalart' | 'project';
+
+type AppView = 'planner' | 'mandalart' | 'project' | 'completed';
 
 interface SidebarProps {
     currentView: AppView;
@@ -54,7 +53,7 @@ export const Sidebar = ({
     const { projects, addProject, editProject, setProjectColor, removeProject, reorderProjectList } = useProjects();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-    const [isCompletedSearchOpen, setIsCompletedSearchOpen] = useState(false);
+
 
     // 이름 편집
     const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -165,13 +164,18 @@ export const Sidebar = ({
                         ))}
                     </div>
 
-                    {/* Completed Search */}
+                    {/* Completed Tasks View */}
                     <button
-                        onClick={() => setIsCompletedSearchOpen(true)}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                        onClick={() => onViewChange('completed')}
+                        className={clsx(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            currentView === 'completed'
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        )}
                     >
                         <CheckCircle2 className="w-5 h-5" />
-                        {!isCollapsed && <span>완료된 할 일</span>}
+                        {!isCollapsed && <span>완료된 할일</span>}
                     </button>
 
                     {/* Goals Section */}
@@ -346,15 +350,5 @@ export const Sidebar = ({
                 onSubmit={async (name) => { await addProject(name); }}
             />
         </div >
-        {
-            typeof window !== 'undefined' && createPortal(
-                <CompletedSearchModal
-                    isOpen={isCompletedSearchOpen}
-                    onClose={() => setIsCompletedSearchOpen(false)}
-                />,
-                document.body
-            )
-        }
-        </>
     );
 };

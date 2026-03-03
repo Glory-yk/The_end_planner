@@ -36,6 +36,9 @@ import { MandalartView } from '@/components/mandalart/MandalartView';
 
 // Project Components
 import { ProjectDetailView } from '@/components/projects/ProjectDetailView';
+
+// Completed Tasks View
+import { CompletedTasksView } from '@/components/completed/CompletedTasksView';
 import { Project } from '@/api/projects/projects';
 
 // Pomodoro Components
@@ -46,7 +49,7 @@ import { ThemeSelector } from '@/components/common/ThemeSelector';
 // Auth Photo
 import { AuthPhotoScreen } from '@/components/auth/AuthPhotoScreen';
 
-type AppView = 'planner' | 'mandalart' | 'project';
+type AppView = 'planner' | 'mandalart' | 'project' | 'completed';
 
 export const AppContent = () => {
     const { user, logout } = useAuth();
@@ -520,6 +523,10 @@ export const AppContent = () => {
                                             project={selectedProject}
                                             onBack={() => setCurrentView('planner')}
                                         />
+                                    </motion.div>
+                                ) : currentView === 'completed' ? (
+                                    <motion.div key="completed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
+                                        <CompletedTasksView />
                                     </motion.div>
                                 ) : currentView === 'planner' ? renderPlanner() : renderMandalart()}
                             </AnimatePresence>
