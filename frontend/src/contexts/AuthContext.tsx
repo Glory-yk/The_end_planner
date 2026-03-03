@@ -43,23 +43,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for token on mount
   useEffect(() => {
-    // 테스트 모드: 백엔드 호출 없이 로컬 데이터로 복원
-    const isTestMode = getSafeLocalStorageItem(TEST_MODE_KEY);
-    if (isTestMode === 'true') {
-      const savedUser = getSafeLocalStorageItem(TEST_USER_KEY);
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-          setToken('dummy_test_token');
-        } catch {
-          removeSafeLocalStorageItem(TEST_MODE_KEY);
-          removeSafeLocalStorageItem(TEST_USER_KEY);
-        }
-      }
-      setIsLoading(false);
-      return;
-    }
-
     const storedToken = getSafeLocalStorageItem(TOKEN_KEY);
     if (storedToken) {
       setToken(storedToken);
