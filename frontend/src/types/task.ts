@@ -55,6 +55,11 @@ export interface Task {
   isRoutine?: boolean; // 루틴 여부
   recurrence?: RecurrenceRule; // 반복 규칙
   routineParentId?: string; // 원본 루틴 ID (반복으로 생성된 작업인 경우)
+
+  // Deadline & Category
+  deadline?: string | null;     // 마감일 (YYYY-MM-DD)
+  category?: string | null;     // 카테고리 ('work' | 'study' | 'exercise' | 'social' | 'personal')
+  completedAt?: string | null;  // 완료 시각 (ISO string, 서버 자동 설정)
 }
 
 export type CreateTaskDto = Omit<Task, 'id' | 'createdAt' | 'isCompleted'>;

@@ -38,4 +38,18 @@ export const tasksApi = {
   delete: async (id: string): Promise<void> => {
     await client.delete(`/tasks/${id}`);
   },
+
+  startTimer: async (id: string): Promise<Task> => {
+    const response = await client.post<Task>(`/tasks/${id}/timer/start`);
+    return response.data;
+  },
+
+  stopTimer: async (id: string): Promise<Task> => {
+    const response = await client.post<Task>(`/tasks/${id}/timer/stop`);
+    return response.data;
+  },
+
+  reorder: async (ids: string[]): Promise<void> => {
+    await client.patch('/tasks/reorder', { ids });
+  },
 };
