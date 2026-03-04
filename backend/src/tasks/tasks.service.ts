@@ -155,6 +155,14 @@ export class TasksService {
     if (updateTaskDto.indent !== undefined && updateTaskDto.indent !== null) {
       task.indent = updateTaskDto.indent;
     }
+
+    // Auto-record completedAt when isCompleted changes
+    if (updateTaskDto.isCompleted === true && !task.isCompleted) {
+      task.completedAt = new Date();
+    } else if (updateTaskDto.isCompleted === false) {
+      task.completedAt = null;
+    }
+
     Object.assign(task, updateTaskDto);
     const savedTask = await this.taskRepository.save(task);
 
@@ -193,6 +201,49 @@ export class TasksService {
     }
 
     await this.taskRepository.remove(task);
+  }
+
+  // ─── Timer Endpoints ────────────────────────────────────────────────────────
+
+  /** POST /tasks/:id/timer/start — Record timerStartedAt and set startTime if not set */
+  async startTimer(userId: string, id: string): Promise<Task> {
+    const task = await this.findOne(userId, id);
+    const now = new Date();
+    task.timerStartedAt = now;
+    // Set startTime to current time if not already set
+    if (!task.startTime) {
+      task.startTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    }
+    // Set scheduledDate to today if not set (Inbox → Today)
+    if (!task.scheduledDate) {
+      task.scheduledDate = now.toISOString().split('T')[0];
+    }
+    return this.taskRepository.save(task);
+  }
+
+  /** POST /tasks/:id/timer/stop — Calculate actualDuration and clear timerStartedAt */
+  async stopTimer(userId: string, id: string): Promise<Task> {
+    const task = await this.findOne(userId, id);
+    if (!task.timerStartedAt) {
+      return task; // Timer was not running, no-op
+    }
+    const now = new Date();
+    const elapsedMs = now.getTime() - new Date(task.timerStartedAt).getTime();
+    const elapsedMinutes = Math.round(elapsedMs / 60000);
+    task.actualDuration = (task.actualDuration || 0) + elapsedMinutes;
+    task.timerStartedAt = null;
+    return this.taskRepository.save(task);
+  }
+
+  // ─── Reorder Endpoint ────────────────────────────────────────────────────────
+
+  /** PATCH /tasks/reorder — Update task order by updating priorities in batch */
+  async reorder(userId: string, orderedIds: string[]): Promise<void> {
+    // Update each task's priority (lower index = higher priority)
+    const updates = orderedIds.map((id, index) =>
+      this.taskRepository.update({ id, userId }, { priority: index + 1 })
+    );
+    await Promise.all(updates);
   }
 
   // Wear OS session sync - saved as FocusSession (Action) instead of Task (Plan)

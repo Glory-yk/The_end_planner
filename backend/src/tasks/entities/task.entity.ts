@@ -78,6 +78,16 @@ export class Task {
   @Column({ type: 'varchar', nullable: true })
   googleEventId: string | null;
 
+  // Advanced task metadata
+  @Column({ type: 'date', nullable: true })
+  deadline: string | null; // Hard deadline date (YYYY-MM-DD)
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  category: string | null; // e.g. 'work' | 'study' | 'exercise' | 'social' | 'personal'
+
+  @Column({ type: 'timestamp', nullable: true })
+  completedAt: Date | null; // When the task was marked complete
+
   @CreateDateColumn()
   createdAt: Date;
 

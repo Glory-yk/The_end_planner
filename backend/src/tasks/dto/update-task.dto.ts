@@ -56,4 +56,16 @@ export class UpdateTaskDto {
   @IsInt()
   @IsOptional()
   indent?: number | null;
+
+  @IsDateString()
+  @IsOptional()
+  deadline?: string | null;
+
+  @IsString()
+  @IsOptional()
+  category?: string | null;
+
+  @IsDateString()
+  @IsOptional()
+  completedAt?: string | null;
 }

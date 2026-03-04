@@ -56,4 +56,12 @@ export class CreateTaskDto {
   @IsInt()
   @IsOptional()
   indent?: number;
+
+  @IsDateString()
+  @IsOptional()
+  deadline?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
 }

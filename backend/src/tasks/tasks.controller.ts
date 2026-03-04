@@ -10,7 +10,10 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { IsArray, IsString } from 'class-validator';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -64,6 +67,27 @@ export class TasksController {
   @Delete(':id')
   remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.tasksService.remove(req.user.id, id);
+  }
+
+  // POST /tasks/:id/timer/start
+  @Post(':id/timer/start')
+  @HttpCode(HttpStatus.OK)
+  startTimer(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tasksService.startTimer(req.user.id, id);
+  }
+
+  // POST /tasks/:id/timer/stop
+  @Post(':id/timer/stop')
+  @HttpCode(HttpStatus.OK)
+  stopTimer(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tasksService.stopTimer(req.user.id, id);
+  }
+
+  // PATCH /tasks/reorder — batch update task priority order
+  @Patch('reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  reorder(@Req() req: any, @Body() body: { ids: string[] }) {
+    return this.tasksService.reorder(req.user.id, body.ids || []);
   }
 
   @Post('wear-sync')

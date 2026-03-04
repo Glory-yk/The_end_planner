@@ -32,6 +32,8 @@ const mapApiToTask = (apiTask: TaskApiResponse): Task => ({
   actualDuration: apiTask.actualDuration || undefined,
   timerStartedAt: apiTask.timerStartedAt || undefined,
   projectId: apiTask.projectId || undefined,
+  deadline: (apiTask as any).deadline || undefined,
+  category: (apiTask as any).category || undefined,
   mandalartRef: apiTask.mandalartGridIndex !== null && apiTask.mandalartCellIndex !== null
     ? { gridIndex: apiTask.mandalartGridIndex, cellIndex: apiTask.mandalartCellIndex }
     : undefined,
@@ -59,6 +61,12 @@ const mapTaskToApi = (task: Partial<Task>) => {
 
   if (task.projectId !== undefined) {
     apiData.projectId = task.projectId || null;
+  }
+  if ((task as any).deadline !== undefined) {
+    apiData.deadline = (task as any).deadline || null;
+  }
+  if ((task as any).category !== undefined) {
+    apiData.category = (task as any).category || null;
   }
 
   return apiData;
@@ -119,6 +127,23 @@ export const taskApi = {
       `/tasks/completed/search?q=${encodeURIComponent(query)}`
     );
     return response.data.map(mapApiToTask);
+  },
+
+  // Start task timer
+  async startTimer(id: string): Promise<Task> {
+    const response = await client.post<TaskApiResponse>(`/tasks/${id}/timer/start`);
+    return mapApiToTask(response.data);
+  },
+
+  // Stop task timer and record actualDuration
+  async stopTimer(id: string): Promise<Task> {
+    const response = await client.post<TaskApiResponse>(`/tasks/${id}/timer/stop`);
+    return mapApiToTask(response.data);
+  },
+
+  // Reorder tasks (drag & drop persistence)
+  async reorder(ids: string[]): Promise<void> {
+    await client.patch('/tasks/reorder', { ids });
   },
 
   // Sync Wear OS timer session (Legacy or updated to use FocusSession internally)
