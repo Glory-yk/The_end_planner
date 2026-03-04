@@ -219,9 +219,9 @@ export const AppContent = () => {
     const tasks = getTasksForDate(selectedDate);
     const unscheduledTasks = tasks.filter(t => !t.startTime);
 
-    const handleAddTask = (title: string, time?: string, projectId?: string) => {
+    const handleAddTask = (title: string, time?: string, projectId?: string, extra?: { description?: string; deadline?: string; category?: string }) => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        addTask(title, dateStr, time, undefined, undefined, projectId);
+        addTask(title, dateStr, time, undefined, undefined, projectId, extra);
     };
 
     const handleAddTaskWithDuration = (title: string, time?: string, duration?: number) => {
