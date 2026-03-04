@@ -349,6 +349,6 @@ export const Sidebar = ({
                 onClose={() => setIsProjectModalOpen(false)}
                 onSubmit={async (name) => { await addProject(name); }}
             />
-        </div >
+        </div>
     );
 };
