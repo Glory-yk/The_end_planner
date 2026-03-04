@@ -55,6 +55,13 @@ export class TasksController {
     return this.tasksService.findOne(req.user.id, id);
   }
 
+  // PATCH /tasks/reorder — batch update task priority order
+  @Patch('reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  reorder(@Req() req: any, @Body() body: { ids: string[] }) {
+    return this.tasksService.reorder(req.user.id, body.ids || []);
+  }
+
   @Patch(':id')
   update(
     @Req() req: any,
@@ -81,13 +88,6 @@ export class TasksController {
   @HttpCode(HttpStatus.OK)
   stopTimer(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.tasksService.stopTimer(req.user.id, id);
-  }
-
-  // PATCH /tasks/reorder — batch update task priority order
-  @Patch('reorder')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  reorder(@Req() req: any, @Body() body: { ids: string[] }) {
-    return this.tasksService.reorder(req.user.id, body.ids || []);
   }
 
   @Post('wear-sync')

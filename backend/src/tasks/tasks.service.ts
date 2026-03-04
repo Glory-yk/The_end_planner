@@ -163,7 +163,8 @@ export class TasksService {
       task.completedAt = null;
     }
 
-    Object.assign(task, updateTaskDto);
+    const { completedAt: _ignored, ...restDto } = updateTaskDto;
+    Object.assign(task, restDto);
     const savedTask = await this.taskRepository.save(task);
 
     // Sync to Google Calendar if task has a scheduled date
