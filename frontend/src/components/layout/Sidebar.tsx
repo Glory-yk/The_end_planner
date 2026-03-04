@@ -323,9 +323,7 @@ export const Sidebar = ({
                 </div>
             </div>
 
-        </div>
-
-            {/* Bottom Actions */ }
+            {/* Bottom Actions */}
             <div className="p-3 border-t border-gray-200 dark:border-slate-800 flex flex-col gap-1">
                 <button
                     onClick={toggleDarkMode}
@@ -348,6 +346,6 @@ export const Sidebar = ({
                 onClose={() => setIsProjectModalOpen(false)}
                 onSubmit={async (name) => { await addProject(name); }}
             />
-        </div >
+        </div>
     );
 };
