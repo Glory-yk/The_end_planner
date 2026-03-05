@@ -27,14 +27,14 @@ import { Project } from './projects/entities/project.entity';
         if (dbHost) {
           console.log(`Using individual DB variables. Host: ${dbHost}`);
           const isLocal = dbHost === 'localhost' || dbHost === '127.0.0.1';
-          const isInternal = dbHost.includes('.railway.internal') || isLocal;
+          const isInternal = dbHost.includes('.neon.tech') || isLocal;
           return {
             type: 'postgres' as const,
             host: dbHost as string,
             port: configService.get<number>('DB_PORT', 5432),
             username: configService.get<string>('DB_USERNAME', 'postgres'),
             password: configService.get<string>('DB_PASSWORD'),
-            database: configService.get<string>('DB_DATABASE', 'railway'),
+            database: configService.get<string>('DB_DATABASE', 'neondb'),
             entities: [Task, User, FocusSession, Mandalart, Project],
             synchronize: true,
             ssl: isInternal ? false : { rejectUnauthorized: false },
