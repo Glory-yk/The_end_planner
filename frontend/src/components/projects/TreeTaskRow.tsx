@@ -25,6 +25,7 @@ export interface TreeTaskRowProps {
     onEditSave: (id: string, title: string) => void;
     onCollapseToggle: (id: string) => void;
     onAddChild: (parentId: string) => void;
+    onSelect: (task: Task) => void;  // 단일 클릭 → 상세 패널
 
     // DnD handlers
     onDragStart: (e: React.DragEvent, id: string) => void;
@@ -41,6 +42,7 @@ export const TreeTaskRow = ({
     isCollapsed, hasChildren, isDragging, isDragOver, dropPosition,
     projectColor,
     onToggle, onDelete, onEditSave, onCollapseToggle, onAddChild,
+    onSelect,
     onDragStart, onDragOver, onDrop, onDragEnd, onIndentChange,
 }: TreeTaskRowProps) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -161,10 +163,11 @@ export const TreeTaskRow = ({
                     ) : (
                         <div className="flex items-center gap-2 flex-wrap">
                             <span
+                                onClick={() => onSelect(task)}
                                 onDoubleClick={startEditing}
-                                className={`text-sm leading-snug ${task.isCompleted
-                                    ? 'line-through text-gray-400 dark:text-slate-600'
-                                    : 'text-gray-800 dark:text-slate-200'}`}
+                                className={`text-sm leading-snug cursor-pointer hover:underline decoration-gray-300 dark:decoration-slate-600 ${task.isCompleted
+                                        ? 'line-through text-gray-400 dark:text-slate-600'
+                                        : 'text-gray-800 dark:text-slate-200'}`}
                             >
                                 {task.title}
                             </span>

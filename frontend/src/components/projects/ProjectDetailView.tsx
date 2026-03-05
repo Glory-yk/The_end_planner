@@ -10,6 +10,7 @@ import taskApi from '@/api/taskApi';
 import { calendarApi } from '@/api/calendarApi';
 import { TreeTaskRow } from './TreeTaskRow';
 import { AddTaskForm } from './AddTaskForm';
+import { TaskDetailPanel } from './TaskDetailPanel';
 
 interface ProjectDetailViewProps {
     project: Project;
@@ -69,7 +70,8 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     const [isLoading, setIsLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
     const [isAddingTask, setIsAddingTask] = useState(false);
-    const [addingChildOf, setAddingChildOf] = useState<string | null>(null); // 하위 태스크 추가 중인 부모 id
+    const [addingChildOf, setAddingChildOf] = useState<string | null>(null);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null); // 상세 패널
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
     const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [isSyncingProject, setIsSyncingProject] = useState(false);
@@ -192,6 +194,31 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     const handleAddChild = (parentId: string) => {
         setAddingChildOf(parentId);
         setShowAddForm(true);
+    };
+
+    const handleUpdateTask = async (id: string, updates: Partial<Task>) => {
+        try {
+            const updated = await taskApi.update(id, updates);
+            setTasks(prev => prev.map((t: Task) => t.id === id ? { ...t, ...updated } : t));
+            if (selectedTask?.id === id) setSelectedTask(prev => prev ? { ...prev, ...updated } : prev);
+        } catch (err) {
+            console.error('Failed to update task:', err);
+        }
+    };
+
+    const handleAddSubtaskFromPanel = async (parentId: string, title: string) => {
+        const parentTask = tasks.find((t: Task) => t.id === parentId);
+        const indent = (parentTask?.indent ?? 0) + 1;
+        const maxPriority = tasks.reduce((m: number, t: Task) => Math.max(m, t.priority ?? 0), 0);
+        const created = await taskApi.create({
+            title,
+            isCompleted: false,
+            scheduledDate: null,
+            projectId: project.id,
+            indent,
+            priority: maxPriority + 1,
+        });
+        setTasks(prev => buildFlatTree([...prev, created]));
     };
 
     const handleIndentChange = async (taskId: string, newIndent: number) => {
@@ -447,6 +474,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                                 onEditSave={handleEditSave}
                                 onCollapseToggle={handleCollapseToggle}
                                 onAddChild={handleAddChild}
+                                onSelect={setSelectedTask}
                                 onDragStart={handleDragStart}
                                 onDragOver={handleDragOver}
                                 onDrop={handleDrop}
@@ -458,5 +486,22 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                 )}
             </div>
         </div>
+
+        {/* Task Detail Panel */ }
+    {
+        selectedTask && (
+            <TaskDetailPanel
+                task={selectedTask}
+                allTasks={tasks}
+                projectName={project.name}
+                projectColor={project.color}
+                onClose={() => setSelectedTask(null)}
+                onUpdateTask={handleUpdateTask}
+                onToggleTask={handleToggle}
+                onDeleteTask={(id) => { handleDelete(id); setSelectedTask(null); }}
+                onAddSubtask={handleAddSubtaskFromPanel}
+            />
+        )
+    }
     );
 };
