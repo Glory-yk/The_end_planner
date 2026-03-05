@@ -80,8 +80,14 @@ export const Sidebar = ({
     const handleDeleteClick = async (e: React.MouseEvent, projectId: string) => {
         e.stopPropagation();
         if (deletingProjectId === projectId) {
-            await removeProject(projectId);
-            setDeletingProjectId(null);
+            try {
+                await removeProject(projectId);
+            } catch (err) {
+                console.error('프로젝트 삭제 실패:', err);
+                alert('프로젝트 삭제에 실패했습니다. 다시 시도해 주세요.');
+            } finally {
+                setDeletingProjectId(null);
+            }
         } else {
             setDeletingProjectId(projectId);
             setTimeout(() => setDeletingProjectId(null), 3000);

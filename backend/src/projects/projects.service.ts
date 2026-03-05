@@ -4,12 +4,15 @@ import { In, Repository } from 'typeorm';
 import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { Task } from '../tasks/entities/task.entity';
 
 @Injectable()
 export class ProjectsService {
     constructor(
         @InjectRepository(Project)
         private readonly projectRepository: Repository<Project>,
+        @InjectRepository(Task)
+        private readonly taskRepository: Repository<Task>,
     ) { }
 
     async create(userId: string, createProjectDto: CreateProjectDto): Promise<Project> {
@@ -52,6 +55,8 @@ export class ProjectsService {
 
     async remove(id: string, userId: string): Promise<void> {
         const project = await this.findOne(id, userId);
+        // FK 제약 우회: 태스크의 projectId를 먼저 null로 초기화
+        await this.taskRepository.update({ projectId: id }, { projectId: null } as any);
         await this.projectRepository.remove(project);
     }
 
