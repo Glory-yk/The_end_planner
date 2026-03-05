@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    ArrowLeft, Plus, Loader2, RefreshCw, CalendarDays, Calendar
+    ArrowLeft, Plus, Loader2, RefreshCw, CalendarDays
 } from 'lucide-react';
 import { Project } from '@/api/projects/projects';
 import { Task } from '@/types/task';
 import taskApi from '@/api/taskApi';
 import { calendarApi } from '@/api/calendarApi';
 import { TreeTaskRow } from './TreeTaskRow';
+import { AddTaskForm } from './AddTaskForm';
 
 interface ProjectDetailViewProps {
     project: Project;
@@ -66,10 +67,7 @@ function getSubtreeIds(tasks: Task[], id: string): string[] {
 export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [newTaskDate, setNewTaskDate] = useState('');
-    const [newTaskTime, setNewTaskTime] = useState('');
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showAddForm, setShowAddForm] = useState(false);
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [addingChildOf, setAddingChildOf] = useState<string | null>(null); // 하위 태스크 추가 중인 부모 id
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -106,30 +104,39 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
 
     // ── Actions ────────────────────────────────────────────────────────────────
 
-    const handleAddTask = async (parentId?: string) => {
-        if (!newTaskTitle.trim()) return;
+    const handleAddTask = async (
+        formData: {
+            title: string;
+            description?: string;
+            scheduledDate?: string | null;
+            startTime?: string | null;
+            duration?: number | null;
+            deadline?: string | null;
+            priority?: number;
+        },
+        parentId?: string
+    ) => {
+        if (!formData.title.trim()) return;
         setIsAddingTask(true);
         try {
             const parentTask = parentId ? tasks.find(t => t.id === parentId) : null;
             const indent = parentTask ? (parentTask.indent ?? 0) + 1 : 0;
-
-            // priority: 마지막 태스크보다 1 큰 값 (간단 구현)
             const maxPriority = tasks.reduce((m, t) => Math.max(m, t.priority ?? 0), 0);
 
             const created = await taskApi.create({
-                title: newTaskTitle.trim(),
+                title: formData.title.trim(),
+                description: formData.description || undefined,
                 isCompleted: false,
-                scheduledDate: newTaskDate || null,
-                startTime: newTaskTime || null,
+                scheduledDate: formData.scheduledDate ?? null,
+                startTime: formData.startTime ?? undefined,
+                duration: formData.duration ?? undefined,
+                deadline: formData.deadline ?? null,
                 projectId: project.id,
                 indent,
-                priority: maxPriority + 1,
+                priority: formData.priority ?? (maxPriority + 1),
             });
             setTasks(prev => buildFlatTree([...prev, created]));
-            setNewTaskTitle('');
-            setNewTaskDate('');
-            setNewTaskTime('');
-            setShowDatePicker(false);
+            setShowAddForm(false);
             setAddingChildOf(null);
         } catch (err) {
             console.error('Failed to create task:', err);
@@ -184,8 +191,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
 
     const handleAddChild = (parentId: string) => {
         setAddingChildOf(parentId);
-        setNewTaskTitle('');
-        // 자동 스크롤 + 포커스는 useEffect로
+        setShowAddForm(true);
     };
 
     const handleIndentChange = async (taskId: string, newIndent: number) => {
@@ -382,62 +388,26 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                 </div>
             )}
 
-            {/* Add Task Input */}
+            {/* Add Task – button or expanded form */}
             <div className="px-6 py-3 border-b border-gray-100 dark:border-slate-800/50">
-                <div className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
-                    {addingChildOf && (
-                        <span className="text-xs text-gray-400 pl-7">
-                            📎 하위 할 일 추가 중 —{' '}
-                            <button
-                                onClick={() => setAddingChildOf(null)}
-                                className="text-primary underline"
-                            >취소</button>
-                        </span>
-                    )}
-                    <div className="flex items-center gap-3">
-                        <Plus className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" />
-                        <input
-                            ref={addInputRef}
-                            type="text"
-                            placeholder={addingChildOf ? "하위 할 일 제목..." : "새 할 일 추가..."}
-                            value={newTaskTitle}
-                            onChange={e => setNewTaskTitle(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && !showDatePicker && handleAddTask(addingChildOf ?? undefined)}
-                            className="flex-1 bg-transparent text-sm text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 outline-none"
-                        />
-                        <button
-                            onClick={() => setShowDatePicker(v => !v)}
-                            className={`p-1.5 rounded-lg transition-colors ${showDatePicker ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-                        >
-                            <Calendar className="w-4 h-4" />
-                        </button>
-                        {newTaskTitle.trim() && (
-                            <button
-                                onClick={() => handleAddTask(addingChildOf ?? undefined)}
-                                disabled={isAddingTask}
-                                className="px-3 py-1 text-xs font-medium bg-primary text-white rounded-lg disabled:opacity-50"
-                            >
-                                {isAddingTask ? <Loader2 className="w-3 h-3 animate-spin" /> : '추가'}
-                            </button>
-                        )}
-                    </div>
-                    {showDatePicker && (
-                        <div className="flex items-center gap-2 pt-1 pl-7">
-                            <input
-                                type="date"
-                                value={newTaskDate}
-                                onChange={e => setNewTaskDate(e.target.value)}
-                                className="text-xs bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-300 outline-none focus:border-primary/50"
-                            />
-                            <input
-                                type="time"
-                                value={newTaskTime}
-                                onChange={e => setNewTaskTime(e.target.value)}
-                                className="text-xs bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-300 outline-none focus:border-primary/50 w-28"
-                            />
-                        </div>
-                    )}
-                </div>
+                {showAddForm || addingChildOf ? (
+                    <AddTaskForm
+                        projectName={project.name}
+                        projectColor={project.color}
+                        parentLabel={addingChildOf ? tasks.find(t => t.id === addingChildOf)?.title : null}
+                        isSubmitting={isAddingTask}
+                        onSubmit={data => handleAddTask(data, addingChildOf ?? undefined)}
+                        onCancel={() => { setShowAddForm(false); setAddingChildOf(null); }}
+                    />
+                ) : (
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all group border border-dashed border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600"
+                    >
+                        <Plus className="w-4 h-4 group-hover:text-primary transition-colors" />
+                        <span>새 할 일 추가...</span>
+                    </button>
+                )}
             </div>
 
             {/* Tree Task List */}
