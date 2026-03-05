@@ -299,12 +299,13 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
 
     // ── Render helpers ─────────────────────────────────────────────────────────
 
-    /** collapsed 상태 반영해서 보여줄 태스크만 필터 */
+    /** collapsed 상태 반영 + 완료된 태스크 제외 (완료 탭에서 별도 표시) */
     const getVisibleTasks = (): Task[] => {
         const visible: Task[] = [];
         let hiddenBelow = -1;
 
         for (const task of tasks) {
+            if (task.isCompleted) continue; // 완료 태스크는 별도 탭에서 표시
             const depth = task.indent ?? 0;
             // collapsed 부모 하위면 skip
             if (hiddenBelow >= 0 && depth > hiddenBelow) continue;
@@ -319,7 +320,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
 
     const visibleTasks = getVisibleTasks();
     const pending = tasks.filter(t => !t.isCompleted);
-    const completedTasks = tasks.filter(t => t.isCompleted);
 
     const getChildCount = (taskId: string) => getChildren(tasks, taskId).length;
     const getCompletedChildCount = (taskId: string) =>
@@ -482,40 +482,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                                 onIndentChange={handleIndentChange}
                             />
                         ))}
-                        {/* Completed section */}
-                        {completedTasks.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800/50">
-                                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-2">
-                                    완료됨 ({completedTasks.length})
-                                </p>
-                                <div className="opacity-50">
-                                    {completedTasks.map(task => (
-                                        <TreeTaskRow
-                                            key={task.id}
-                                            task={task}
-                                            depth={task.indent ?? 0}
-                                            childCount={0}
-                                            completedChildCount={0}
-                                            isCollapsed={false}
-                                            hasChildren={false}
-                                            isDragging={false}
-                                            isDragOver={false}
-                                            dropPosition={null}
-                                            onToggle={handleToggle}
-                                            onDelete={handleDelete}
-                                            onEditSave={handleEditSave}
-                                            onCollapseToggle={() => { }}
-                                            onAddChild={() => { }}
-                                            onDragStart={() => { }}
-                                            onDragOver={() => { }}
-                                            onDrop={() => { }}
-                                            onDragEnd={() => { }}
-                                            onIndentChange={() => { }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
