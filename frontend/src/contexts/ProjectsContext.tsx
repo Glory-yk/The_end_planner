@@ -22,7 +22,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
-    const { user, isProfileSetupComplete } = useAuth();
+    const { user } = useAuth();
 
     const refreshProjects = useCallback(async () => {
         if (!user) return;
@@ -37,7 +37,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [user, isProfileSetupComplete]);
+    }, [user]);
 
     useEffect(() => {
         refreshProjects();
