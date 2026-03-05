@@ -471,6 +471,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                                 isDragging={draggedId === task.id}
                                 isDragOver={dragOverId === task.id}
                                 dropPosition={dragOverId === task.id ? dropPosition : null}
+                                projectColor={project.color}
                                 onToggle={handleToggle}
                                 onDelete={handleDelete}
                                 onEditSave={handleEditSave}

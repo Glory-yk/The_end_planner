@@ -18,6 +18,7 @@ export interface TreeTaskRowProps {
     isDragging: boolean;     // 이 태스크가 드래그 중인지
     isDragOver: boolean;     // 이 태스크 위에 드롭될 예정인지
     dropPosition: 'before' | 'after' | 'child' | null;
+    projectColor?: string | null;  // 프로젝트 대표 색상
 
     onToggle: (task: Task) => void;
     onDelete: (id: string) => void;
@@ -38,6 +39,7 @@ export interface TreeTaskRowProps {
 export const TreeTaskRow = ({
     task, depth, childCount, completedChildCount,
     isCollapsed, hasChildren, isDragging, isDragOver, dropPosition,
+    projectColor,
     onToggle, onDelete, onEditSave, onCollapseToggle, onAddChild,
     onDragStart, onDragOver, onDrop, onDragEnd, onIndentChange,
 }: TreeTaskRowProps) => {
@@ -131,15 +133,16 @@ export const TreeTaskRow = ({
                     )}
                 </button>
 
-                {/* Red circle checkbox */}
+                {/* Circle checkbox — 프로젝트 컬러 적용 */}
                 <button
                     onClick={() => onToggle(task)}
                     className="flex-shrink-0 transition-colors"
+                    style={{ color: projectColor || '#ef4444' }}
                 >
                     {task.isCompleted ? (
-                        <CheckCircle2 className="w-4.5 h-4.5 text-red-500" style={{ width: 18, height: 18 }} />
+                        <CheckCircle2 style={{ width: 18, height: 18 }} />
                     ) : (
-                        <Circle className="w-4.5 h-4.5 text-red-500 hover:text-red-600" style={{ width: 18, height: 18 }} />
+                        <Circle style={{ width: 18, height: 18 }} />
                     )}
                 </button>
 
