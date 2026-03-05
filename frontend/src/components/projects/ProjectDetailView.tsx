@@ -1,20 +1,68 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    ArrowLeft, Plus, Circle, CheckCircle2, Trash2, Loader2,
-    Edit3, Check, X, CalendarDays, RefreshCw, Calendar
+    ArrowLeft, Plus, Loader2, RefreshCw, CalendarDays, Calendar
 } from 'lucide-react';
 import { Project } from '@/api/projects/projects';
 import { Task } from '@/types/task';
 import taskApi from '@/api/taskApi';
 import { calendarApi } from '@/api/calendarApi';
 import { useAppStore } from '@/hooks/useAppStore';
+import { TreeTaskRow } from './TreeTaskRow';
 
 interface ProjectDetailViewProps {
     project: Project;
     onBack: () => void;
 }
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Task를 indent 순서 기반으로 flat 렌더 순서로 반환 */
+function buildFlatTree(tasks: Task[]): Task[] {
+    // indent 기준으로 정렬 (priority 필드가 있으면 사용, 없으면 createdAt)
+    return [...tasks].sort((a, b) => {
+        const pa = a.priority ?? 0;
+        const pb = b.priority ?? 0;
+        return pa - pb || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+}
+
+/** 주어진 task의 직계 자식들 반환 */
+function getChildren(tasks: Task[], parentId: string): Task[] {
+    // 트리 구조: 편의상 "같은 flat 목록에서 바로 다음 단계 자식" 찾기
+    // parentId 필드가 없으므로 indent 기반 구조로 처리
+    // 여기서는 task.projectId를 공유하고 indent > parent.indent 인 바로 다음 태스크들을 찾는다
+    // 실제로는 순서(priority/createdAt)와 indent 조합으로 판단
+    const parent = tasks.find(t => t.id === parentId);
+    if (!parent) return [];
+    const parentDepth = parent.indent ?? 0;
+    const parentIdx = tasks.indexOf(parent);
+
+    const children: Task[] = [];
+    for (let i = parentIdx + 1; i < tasks.length; i++) {
+        const d = tasks[i].indent ?? 0;
+        if (d <= parentDepth) break; // 같은 레벨이거나 위 레벨이면 중단
+        if (d === parentDepth + 1) children.push(tasks[i]);
+    }
+    return children;
+}
+
+/** 특정 id의 task와 그 모든 하위 task id 목록 반환 */
+function getSubtreeIds(tasks: Task[], id: string): string[] {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return [id];
+    const depth = task.indent ?? 0;
+    const idx = tasks.indexOf(task);
+    const ids = [id];
+    for (let i = idx + 1; i < tasks.length; i++) {
+        if ((tasks[i].indent ?? 0) <= depth) break;
+        ids.push(tasks[i].id);
+    }
+    return ids;
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) => {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -24,10 +72,16 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     const [newTaskTime, setNewTaskTime] = useState('');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isAddingTask, setIsAddingTask] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-    const [editingTitle, setEditingTitle] = useState('');
-    const [isSyncingProject, setIsSyncingProject] = useState(false);
+    const [addingChildOf, setAddingChildOf] = useState<string | null>(null); // 하위 태스크 추가 중인 부모 id
+    const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
     const [syncMessage, setSyncMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+    const [isSyncingProject, setIsSyncingProject] = useState(false);
+
+    // DnD state
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
+    const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
+
     const { deleteTask, toggleTask } = useAppStore();
 
     const loadTasks = useCallback(async () => {
@@ -35,7 +89,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
         try {
             const allTasks = await taskApi.getAll();
             const projectTasks = allTasks.filter(t => t.projectId === project.id);
-            setTasks(projectTasks);
+            setTasks(buildFlatTree(projectTasks));
         } catch (err) {
             console.error('Failed to load project tasks:', err);
         } finally {
@@ -43,34 +97,42 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
         }
     }, [project.id]);
 
-    useEffect(() => {
-        loadTasks();
-    }, [loadTasks]);
+    useEffect(() => { loadTasks(); }, [loadTasks]);
 
-    // 메시지 자동 사라짐
     useEffect(() => {
         if (syncMessage) {
-            const timer = setTimeout(() => setSyncMessage(null), 3000);
-            return () => clearTimeout(timer);
+            const t = setTimeout(() => setSyncMessage(null), 3000);
+            return () => clearTimeout(t);
         }
     }, [syncMessage]);
 
-    const handleAddTask = async () => {
+    // ── Actions ────────────────────────────────────────────────────────────────
+
+    const handleAddTask = async (parentId?: string) => {
         if (!newTaskTitle.trim()) return;
         setIsAddingTask(true);
         try {
+            const parentTask = parentId ? tasks.find(t => t.id === parentId) : null;
+            const indent = parentTask ? (parentTask.indent ?? 0) + 1 : 0;
+
+            // priority: 마지막 태스크보다 1 큰 값 (간단 구현)
+            const maxPriority = tasks.reduce((m, t) => Math.max(m, t.priority ?? 0), 0);
+
             const created = await taskApi.create({
                 title: newTaskTitle.trim(),
                 isCompleted: false,
                 scheduledDate: newTaskDate || null,
                 startTime: newTaskTime || null,
                 projectId: project.id,
+                indent,
+                priority: maxPriority + 1,
             });
-            setTasks(prev => [created, ...prev]);
+            setTasks(prev => buildFlatTree([...prev, created]));
             setNewTaskTitle('');
             setNewTaskDate('');
             setNewTaskTime('');
             setShowDatePicker(false);
+            setAddingChildOf(null);
         } catch (err) {
             console.error('Failed to create task:', err);
         } finally {
@@ -88,37 +150,48 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     };
 
     const handleDelete = async (taskId: string) => {
+        const toDelete = getSubtreeIds(tasks, taskId);
         try {
-            await deleteTask(taskId);
-            setTasks(prev => prev.filter(t => t.id !== taskId));
+            await Promise.all(toDelete.map(id => deleteTask(id)));
+            setTasks(prev => prev.filter(t => !toDelete.includes(t.id)));
         } catch (err) {
             console.error('Failed to delete task:', err);
         }
     };
 
-    const handleEditSave = async (taskId: string) => {
-        if (!editingTitle.trim()) return;
+    const handleEditSave = async (taskId: string, title: string) => {
         try {
-            const updated = await taskApi.update(taskId, { title: editingTitle.trim() });
-            setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
-            setEditingTaskId(null);
+            const updated = await taskApi.update(taskId, { title });
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, title: updated.title } : t));
         } catch (err) {
             console.error('Failed to update task:', err);
         }
     };
 
-    // 개별 태스크 캘린더 동기화
-    const handleSyncTask = async (taskId: string) => {
+    const handleCollapseToggle = (id: string) => {
+        setCollapsed(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleAddChild = (parentId: string) => {
+        setAddingChildOf(parentId);
+        setNewTaskTitle('');
+        // 자동 스크롤 + 포커스는 useEffect로
+    };
+
+    const handleIndentChange = async (taskId: string, newIndent: number) => {
         try {
-            const result = await calendarApi.syncTask(taskId);
-            setSyncMessage({ text: result.message, type: 'success' });
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || '캘린더 등록에 실패했습니다';
-            setSyncMessage({ text: msg, type: 'error' });
+            await taskApi.update(taskId, { indent: newIndent });
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, indent: newIndent } : t));
+        } catch (err) {
+            console.error('Failed to change indent:', err);
         }
     };
 
-    // 프로젝트 전체 캘린더 동기화
     const handleSyncProject = async () => {
         setIsSyncingProject(true);
         try {
@@ -132,9 +205,137 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
         }
     };
 
+    // ── Drag & Drop ────────────────────────────────────────────────────────────
+
+    const handleDragStart = (e: React.DragEvent, id: string) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+        setDraggedId(id);
+    };
+
+    const handleDragOver = (e: React.DragEvent, targetId: string, depth: number) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (targetId === draggedId) return;
+        setDragOverId(targetId);
+
+        // 마우스 Y 위치에 따라 before/after/child 결정
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const h = rect.height;
+        if (y < h * 0.25) setDropPosition('before');
+        else if (y > h * 0.75) setDropPosition('after');
+        else setDropPosition('child');
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        const fromId = e.dataTransfer.getData('text/plain') || draggedId;
+        if (!fromId || fromId === targetId) {
+            resetDnD();
+            return;
+        }
+
+        setTasks(prev => {
+            const newTasks = [...prev];
+            const fromIdx = newTasks.findIndex(t => t.id === fromId);
+            const toIdx = newTasks.findIndex(t => t.id === targetId);
+            if (fromIdx === -1 || toIdx === -1) return prev;
+
+            const fromTask = { ...newTasks[fromIdx] };
+            const toTask = newTasks[toIdx];
+
+            // child drop: indent = toTask.indent + 1
+            if (dropPosition === 'child') {
+                fromTask.indent = (toTask.indent ?? 0) + 1;
+            } else {
+                fromTask.indent = toTask.indent ?? 0;
+            }
+
+            // Subtree 이동
+            const subtreeIds = getSubtreeIds(newTasks, fromId);
+            const subtree = subtreeIds.map(id => newTasks.find(t => t.id === id)!).filter(Boolean);
+            const rest = newTasks.filter(t => !subtreeIds.includes(t.id));
+
+            const insertIdx = rest.findIndex(t => t.id === targetId);
+            if (insertIdx === -1) return prev;
+
+            const insertAt = dropPosition === 'before' ? insertIdx : insertIdx + 1;
+            rest.splice(insertAt, 0, ...subtree.map((t, i) => ({
+                ...t,
+                indent: i === 0 ? fromTask.indent : (t.indent ?? 0),
+            })));
+
+            // priority 재계산 후 서버 동기화
+            const updated = rest.map((t, idx) => ({ ...t, priority: idx }));
+            // 비동기로 서버 저장 (UI는 즉시 반영)
+            taskApi.reorder(updated.map(t => t.id)).catch(console.error);
+
+            // indent 변경된 것들도 서버에 저장
+            updated.forEach(t => {
+                const orig = prev.find(o => o.id === t.id);
+                if (orig && orig.indent !== t.indent) {
+                    taskApi.update(t.id, { indent: t.indent }).catch(console.error);
+                }
+            });
+
+            return updated;
+        });
+
+        resetDnD();
+    };
+
+    const handleDragEnd = () => resetDnD();
+
+    const resetDnD = () => {
+        setDraggedId(null);
+        setDragOverId(null);
+        setDropPosition(null);
+    };
+
+    // ── Render helpers ─────────────────────────────────────────────────────────
+
+    /** collapsed 상태 반영해서 보여줄 태스크만 필터 */
+    const getVisibleTasks = (): Task[] => {
+        const visible: Task[] = [];
+        let hiddenBelow = -1;
+
+        for (const task of tasks) {
+            const depth = task.indent ?? 0;
+            // collapsed 부모 하위면 skip
+            if (hiddenBelow >= 0 && depth > hiddenBelow) continue;
+            hiddenBelow = -1;
+            visible.push(task);
+            if (collapsed.has(task.id)) {
+                hiddenBelow = depth;
+            }
+        }
+        return visible;
+    };
+
+    const visibleTasks = getVisibleTasks();
     const pending = tasks.filter(t => !t.isCompleted);
-    const completed = tasks.filter(t => t.isCompleted);
-    const tasksWithDate = tasks.filter(t => t.scheduledDate && !t.isCompleted).length;
+    const completedTasks = tasks.filter(t => t.isCompleted);
+
+    const getChildCount = (taskId: string) => getChildren(tasks, taskId).length;
+    const getCompletedChildCount = (taskId: string) =>
+        getChildren(tasks, taskId).filter(c => c.isCompleted).length;
+
+    const hasChildren = (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return false;
+        const depth = task.indent ?? 0;
+        const idx = tasks.indexOf(task);
+        return idx + 1 < tasks.length && (tasks[idx + 1].indent ?? 0) > depth;
+    };
+
+    // 새 태스크 추가 input ref (addingChildOf 시 포커스)
+    const addInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if (addingChildOf) {
+            setTimeout(() => addInputRef.current?.focus(), 0);
+        }
+    }, [addingChildOf]);
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-950">
@@ -154,17 +355,12 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                     <span className="text-sm text-gray-400 dark:text-slate-500">
                         {pending.length}개 남음
                     </span>
-                    {/* 프로젝트 전체 캘린더 동기화 버튼 */}
                     <button
                         onClick={handleSyncProject}
-                        disabled={isSyncingProject || tasksWithDate === 0}
-                        title={tasksWithDate === 0 ? '날짜가 있는 태스크가 없습니다' : `날짜 있는 태스크 ${tasksWithDate}개 캘린더 동기화`}
+                        disabled={isSyncingProject}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                        {isSyncingProject
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <RefreshCw className="w-3.5 h-3.5" />
-                        }
+                        {isSyncingProject ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                         전체 동기화
                     </button>
                 </div>
@@ -184,34 +380,42 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
             {/* Add Task Input */}
             <div className="px-6 py-3 border-b border-gray-100 dark:border-slate-800/50">
                 <div className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+                    {addingChildOf && (
+                        <span className="text-xs text-gray-400 pl-7">
+                            📎 하위 할 일 추가 중 —{' '}
+                            <button
+                                onClick={() => setAddingChildOf(null)}
+                                className="text-primary underline"
+                            >취소</button>
+                        </span>
+                    )}
                     <div className="flex items-center gap-3">
                         <Plus className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" />
                         <input
+                            ref={addInputRef}
                             type="text"
-                            placeholder="새 할 일 추가..."
+                            placeholder={addingChildOf ? "하위 할 일 제목..." : "새 할 일 추가..."}
                             value={newTaskTitle}
                             onChange={e => setNewTaskTitle(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && !showDatePicker && handleAddTask()}
+                            onKeyDown={e => e.key === 'Enter' && !showDatePicker && handleAddTask(addingChildOf ?? undefined)}
                             className="flex-1 bg-transparent text-sm text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 outline-none"
                         />
                         <button
                             onClick={() => setShowDatePicker(v => !v)}
                             className={`p-1.5 rounded-lg transition-colors ${showDatePicker ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-                            title="날짜/시간 설정"
                         >
                             <Calendar className="w-4 h-4" />
                         </button>
                         {newTaskTitle.trim() && (
                             <button
-                                onClick={handleAddTask}
+                                onClick={() => handleAddTask(addingChildOf ?? undefined)}
                                 disabled={isAddingTask}
-                                className="px-3 py-1 text-xs font-medium bg-primary text-white rounded-lg disabled:opacity-50 transition-opacity"
+                                className="px-3 py-1 text-xs font-medium bg-primary text-white rounded-lg disabled:opacity-50"
                             >
                                 {isAddingTask ? <Loader2 className="w-3 h-3 animate-spin" /> : '추가'}
                             </button>
                         )}
                     </div>
-                    {/* 날짜/시간 입력 */}
                     {showDatePicker && (
                         <div className="flex items-center gap-2 pt-1 pl-7">
                             <input
@@ -226,19 +430,16 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                                 onChange={e => setNewTaskTime(e.target.value)}
                                 className="text-xs bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-300 outline-none focus:border-primary/50 w-28"
                             />
-                            {newTaskDate && (
-                                <span className="text-xs text-blue-500 flex items-center gap-1">
-                                    <CalendarDays className="w-3 h-3" />
-                                    캘린더 알람 설정됨
-                                </span>
-                            )}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Task List */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            {/* Tree Task List */}
+            <div
+                className="flex-1 overflow-y-auto px-4 py-4"
+                onDragOver={e => e.preventDefault()}
+            >
                 {isLoading ? (
                     <div className="flex items-center justify-center py-16">
                         <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -246,183 +447,74 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                 ) : tasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 dark:text-slate-600">
                         <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
-                            <CheckCircle2 className="w-7 h-7" />
+                            <Plus className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-medium">할 일이 없습니다</p>
                         <p className="text-xs">위에서 새 할 일을 추가해보세요</p>
                     </div>
                 ) : (
-                    <>
-                        {/* Pending Tasks */}
-                        {pending.length > 0 && (
-                            <div className="mb-6">
-                                <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">진행 중 ({pending.length})</h3>
-                                <div className="flex flex-col gap-1">
-                                    {pending.map(task => (
-                                        <TaskRow
+                    <div className="flex flex-col gap-0">
+                        {visibleTasks.map(task => (
+                            <TreeTaskRow
+                                key={task.id}
+                                task={task}
+                                depth={task.indent ?? 0}
+                                childCount={getChildCount(task.id)}
+                                completedChildCount={getCompletedChildCount(task.id)}
+                                isCollapsed={collapsed.has(task.id)}
+                                hasChildren={hasChildren(task.id)}
+                                isDragging={draggedId === task.id}
+                                isDragOver={dragOverId === task.id}
+                                dropPosition={dragOverId === task.id ? dropPosition : null}
+                                onToggle={handleToggle}
+                                onDelete={handleDelete}
+                                onEditSave={handleEditSave}
+                                onCollapseToggle={handleCollapseToggle}
+                                onAddChild={handleAddChild}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onDragEnd={handleDragEnd}
+                                onIndentChange={handleIndentChange}
+                            />
+                        ))}
+                        {/* Completed section */}
+                        {completedTasks.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800/50">
+                                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-2">
+                                    완료됨 ({completedTasks.length})
+                                </p>
+                                <div className="opacity-50">
+                                    {completedTasks.map(task => (
+                                        <TreeTaskRow
                                             key={task.id}
                                             task={task}
-                                            editingTaskId={editingTaskId}
-                                            editingTitle={editingTitle}
-                                            setEditingTaskId={setEditingTaskId}
-                                            setEditingTitle={setEditingTitle}
+                                            depth={task.indent ?? 0}
+                                            childCount={0}
+                                            completedChildCount={0}
+                                            isCollapsed={false}
+                                            hasChildren={false}
+                                            isDragging={false}
+                                            isDragOver={false}
+                                            dropPosition={null}
                                             onToggle={handleToggle}
                                             onDelete={handleDelete}
                                             onEditSave={handleEditSave}
-                                            onSyncCalendar={handleSyncTask}
+                                            onCollapseToggle={() => { }}
+                                            onAddChild={() => { }}
+                                            onDragStart={() => { }}
+                                            onDragOver={() => { }}
+                                            onDrop={() => { }}
+                                            onDragEnd={() => { }}
+                                            onIndentChange={() => { }}
                                         />
                                     ))}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Completed Tasks */}
-                        {completed.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">완료됨 ({completed.length})</h3>
-                                <div className="flex flex-col gap-1 opacity-60">
-                                    {completed.map(task => (
-                                        <TaskRow
-                                            key={task.id}
-                                            task={task}
-                                            editingTaskId={editingTaskId}
-                                            editingTitle={editingTitle}
-                                            setEditingTaskId={setEditingTaskId}
-                                            setEditingTitle={setEditingTitle}
-                                            onToggle={handleToggle}
-                                            onDelete={handleDelete}
-                                            onEditSave={handleEditSave}
-                                            onSyncCalendar={handleSyncTask}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* Calendar hint footer */}
-            <div className="px-6 py-3 border-t border-gray-100 dark:border-slate-800/50 flex items-center gap-2 text-xs text-gray-400 dark:text-slate-600">
-                <CalendarDays className="w-3.5 h-3.5" />
-                <span>날짜 있는 태스크의 🗓️ 버튼으로 구글 캘린더에 알람을 설정하세요 (팝업 10분 전)</span>
-            </div>
-        </div>
-    );
-};
-
-/* ── Sub-component: TaskRow ── */
-interface TaskRowProps {
-    task: Task;
-    editingTaskId: string | null;
-    editingTitle: string;
-    setEditingTaskId: (id: string | null) => void;
-    setEditingTitle: (t: string) => void;
-    onToggle: (task: Task) => void;
-    onDelete: (id: string) => void;
-    onEditSave: (id: string) => void;
-    onSyncCalendar: (id: string) => void;
-}
-
-const TaskRow = ({
-    task, editingTaskId, editingTitle,
-    setEditingTaskId, setEditingTitle,
-    onToggle, onDelete, onEditSave, onSyncCalendar
-}: TaskRowProps) => {
-    const isEditing = editingTaskId === task.id;
-    const [isSyncing, setIsSyncing] = useState(false);
-
-    const handleCalendarSync = async () => {
-        setIsSyncing(true);
-        try {
-            await onSyncCalendar(task.id);
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-
-    return (
-        <div className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors">
-            <button
-                onClick={() => onToggle(task)}
-                className="flex-shrink-0 text-gray-300 dark:text-slate-600 hover:text-primary transition-colors"
-            >
-                {task.isCompleted
-                    ? <CheckCircle2 className="w-5 h-5 text-primary" />
-                    : <Circle className="w-5 h-5" />
-                }
-            </button>
-
-            <div className="flex-1 min-w-0">
-                {isEditing ? (
-                    <input
-                        autoFocus
-                        value={editingTitle}
-                        onChange={e => setEditingTitle(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') onEditSave(task.id);
-                            if (e.key === 'Escape') setEditingTaskId(null);
-                        }}
-                        className="w-full text-sm bg-white dark:bg-slate-800 border border-primary/50 rounded-lg px-2 py-1 outline-none text-gray-900 dark:text-white"
-                    />
-                ) : (
-                    <div>
-                        <span
-                            onDoubleClick={() => { setEditingTaskId(task.id); setEditingTitle(task.title); }}
-                            className={`block text-sm ${task.isCompleted ? 'line-through text-gray-400 dark:text-slate-600' : 'text-gray-800 dark:text-slate-200'}`}
-                        >
-                            {task.title}
-                        </span>
-                        {task.scheduledDate && (
-                            <div className="flex items-center gap-1 mt-0.5">
-                                <CalendarDays className="w-3 h-3 text-blue-400" />
-                                <span className="text-xs text-blue-400">
-                                    {task.scheduledDate}{task.startTime ? ` ${task.startTime}` : ''}
-                                </span>
-                                {task.googleEventId && (
-                                    <span className="text-xs text-green-500 ml-1">✓ 캘린더 등록됨</span>
-                                )}
                             </div>
                         )}
                     </div>
                 )}
             </div>
-
-            {isEditing ? (
-                <div className="flex gap-1">
-                    <button onClick={() => onEditSave(task.id)} className="p-1 text-primary hover:bg-primary/10 rounded"><Check className="w-4 h-4" /></button>
-                    <button onClick={() => setEditingTaskId(null)} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded"><X className="w-4 h-4" /></button>
-                </div>
-            ) : (
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* 캘린더 등록 버튼 - 날짜가 있을 때만 표시 */}
-                    {task.scheduledDate && (
-                        <button
-                            onClick={handleCalendarSync}
-                            disabled={isSyncing}
-                            title="구글 캘린더에 등록 (알람 포함)"
-                            className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded transition-colors disabled:opacity-50"
-                        >
-                            {isSyncing
-                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                : <CalendarDays className="w-3.5 h-3.5" />
-                            }
-                        </button>
-                    )}
-                    <button
-                        onClick={() => { setEditingTaskId(task.id); setEditingTitle(task.title); }}
-                        className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-800 rounded transition-colors"
-                    >
-                        <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        onClick={() => onDelete(task.id)}
-                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded transition-colors"
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
