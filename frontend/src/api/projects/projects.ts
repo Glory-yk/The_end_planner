@@ -1,5 +1,5 @@
 import apiClient from '../client';
-import type { Task } from '../tasks/types';
+import type { Task } from '@/types/task';
 
 export interface Project {
     id: string;
