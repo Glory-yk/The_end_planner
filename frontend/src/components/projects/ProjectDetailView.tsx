@@ -376,7 +376,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     }, [addingChildOf]);
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-slate-950">
+        <>
             {/* Header */}
             <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 dark:border-slate-800">
                 <button
@@ -485,9 +485,9 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                     </div>
                 )}
             </div>
-        </div>
+        </div >
 
-        {/* Task Detail Panel */ }
+            {/* Task Detail Panel */ }
     {
         selectedTask && (
             <TaskDetailPanel
@@ -503,5 +503,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
             />
         )
     }
+        </>
     );
 };
