@@ -36,7 +36,7 @@ interface AppStoreContextType {
     tasks: Task[];
     isLoading: boolean;
     error: string | null;
-    addTask: (title: string, scheduledDate?: string, startTime?: string, mandalartRef?: { gridIndex: number; cellIndex: number }, duration?: number, projectId?: string) => Promise<string>;
+    addTask: (title: string, scheduledDate?: string, startTime?: string, mandalartRef?: { gridIndex: number; cellIndex: number }, duration?: number, projectId?: string, extra?: { description?: string; deadline?: string; category?: string }) => Promise<string>;
     toggleTask: (taskId: string) => void;
     deleteTask: (taskId: string) => void;
     getTasksForDate: (date: Date) => Task[];
@@ -337,7 +337,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
         startTime?: string,
         mandalartRef?: { gridIndex: number; cellIndex: number },
         duration?: number,
-        projectId?: string
+        projectId?: string,
+        extra?: { description?: string; deadline?: string; category?: string }
     ): Promise<string> => {
         try {
             const newTask = await taskApi.create({
@@ -347,7 +348,8 @@ export const AppStoreProvider = ({ children }: AppStoreProviderProps) => {
                 startTime,
                 duration,
                 mandalartRef,
-                projectId
+                projectId,
+                ...extra
             });
 
             setTasks(prev => [...prev, newTask]);
