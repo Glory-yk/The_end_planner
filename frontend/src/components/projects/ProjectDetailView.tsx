@@ -82,7 +82,7 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
 
-    const { deleteTask, toggleTask } = useAppStore();
+    const { deleteTask } = useAppStore();
 
     const loadTasks = useCallback(async () => {
         setIsLoading(true);
@@ -141,11 +141,15 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     };
 
     const handleToggle = async (task: Task) => {
+        const newCompleted = !task.isCompleted;
+        // Optimistic update
+        setTasks((prev: Task[]) => prev.map((t: Task) => t.id === task.id ? { ...t, isCompleted: newCompleted } : t));
         try {
-            await toggleTask(task.id);
-            setTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: !t.isCompleted } : t));
+            await taskApi.update(task.id, { isCompleted: newCompleted });
         } catch (err) {
             console.error('Failed to toggle task:', err);
+            // Revert on error
+            setTasks((prev: Task[]) => prev.map((t: Task) => t.id === task.id ? { ...t, isCompleted: task.isCompleted } : t));
         }
     };
 
