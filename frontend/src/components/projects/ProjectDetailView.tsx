@@ -8,7 +8,6 @@ import { Project } from '@/api/projects/projects';
 import { Task } from '@/types/task';
 import taskApi from '@/api/taskApi';
 import { calendarApi } from '@/api/calendarApi';
-import { useAppStore } from '@/hooks/useAppStore';
 import { TreeTaskRow } from './TreeTaskRow';
 
 interface ProjectDetailViewProps {
@@ -82,7 +81,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
 
-    const { deleteTask } = useAppStore();
 
     const loadTasks = useCallback(async () => {
         setIsLoading(true);
@@ -155,11 +153,14 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
 
     const handleDelete = async (taskId: string) => {
         const toDelete = getSubtreeIds(tasks, taskId);
+        // Optimistic update
+        setTasks((prev: Task[]) => prev.filter((t: Task) => !toDelete.includes(t.id)));
         try {
-            await Promise.all(toDelete.map(id => deleteTask(id)));
-            setTasks(prev => prev.filter(t => !toDelete.includes(t.id)));
+            await Promise.all(toDelete.map(id => taskApi.delete(id)));
         } catch (err) {
             console.error('Failed to delete task:', err);
+            // Revert on error
+            loadTasks();
         }
     };
 
