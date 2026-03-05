@@ -485,8 +485,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                     </div>
                 )}
             </div>
-        </div>
-
         {/* Task Detail Panel */}
         {selectedTask && (
             <TaskDetailPanel
@@ -501,5 +499,6 @@ export const ProjectDetailView = ({ project, onBack }: ProjectDetailViewProps) =
                 onAddSubtask={handleAddSubtaskFromPanel}
             />
         )}
+        </div>
     );
 };
