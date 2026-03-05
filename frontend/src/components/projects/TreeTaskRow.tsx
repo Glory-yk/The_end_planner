@@ -185,7 +185,10 @@ export const TreeTaskRow = ({
 
                             {/* Date badge */}
                             {task.scheduledDate && !task.isCompleted && (
-                                <span className="flex items-center gap-0.5 text-xs text-red-400">
+                                <span
+                                    className="flex items-center gap-0.5 text-xs"
+                                    style={{ color: projectColor || '#ef4444' }}
+                                >
                                     <CalendarDays className="w-3 h-3" />
                                     {task.scheduledDate}
                                 </span>
