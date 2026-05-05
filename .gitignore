@@ -65,3 +65,7 @@ dev-debug.log
 *.zip
 query
 nul
+
+# Local SQLite DB (dev only)
+backend/database.sqlite
+backend/*.sqlite

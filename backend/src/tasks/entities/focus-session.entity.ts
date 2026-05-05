@@ -30,10 +30,10 @@ export class FocusSession {
     @JoinColumn({ name: 'taskId' })
     task: Task | null;
 
-    @Column({ type: 'timestamp' })
+    @Column()
     startTime: Date;
 
-    @Column({ type: 'timestamp' })
+    @Column()
     endTime: Date;
 
     @Column({ type: 'int' })

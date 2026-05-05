@@ -24,7 +24,7 @@ export class Task {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   projectId: string | null;
 
   @ManyToOne(() => Project, (project) => project.tasks, { onDelete: 'SET NULL', nullable: true })
@@ -60,7 +60,7 @@ export class Task {
   @Column({ type: 'int', nullable: true })
   actualDuration: number | null; // actual duration in minutes (measured by timer)
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   timerStartedAt: Date | null; // when timer was started
 
   // Mandalart integration
@@ -85,7 +85,7 @@ export class Task {
   @Column({ type: 'varchar', length: 50, nullable: true })
   category: string | null; // e.g. 'work' | 'study' | 'exercise' | 'social' | 'personal'
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   completedAt: Date | null; // When the task was marked complete
 
   @CreateDateColumn()

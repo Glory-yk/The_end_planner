@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 export interface WearTimerSession {
   title?: string;
@@ -17,6 +17,14 @@ export interface WearSyncPlugin {
   removeAllListeners(): Promise<void>;
 }
 
-const WearSync = registerPlugin<WearSyncPlugin>('WearSync');
+const noopStub: WearSyncPlugin = {
+  isAvailable: async () => ({ available: false }),
+  addListener: async () => ({ remove: () => {} }),
+  removeAllListeners: async () => {},
+};
+
+const WearSync: WearSyncPlugin = Capacitor.isNativePlatform()
+  ? registerPlugin<WearSyncPlugin>('WearSync')
+  : noopStub;
 
 export default WearSync;

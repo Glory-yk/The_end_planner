@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PluginListenerHandle } from '@capacitor/core';
 
 interface WearSyncPlugin {
     addListener(eventName: 'timerSessionReceived', listenerFunc: (data: { durationMinutes: number; taskId?: string }) => void): Promise<PluginListenerHandle> & PluginListenerHandle;
 }
 
-const WearSync = registerPlugin<WearSyncPlugin>('WearSync');
+const noopWearSync = {
+    addListener: () => Promise.resolve({ remove: async () => {} }) as Promise<PluginListenerHandle> & PluginListenerHandle,
+};
+
+const WearSync: WearSyncPlugin = Capacitor.isNativePlatform()
+    ? registerPlugin<WearSyncPlugin>('WearSync')
+    : (noopWearSync as unknown as WearSyncPlugin);
 
 type SessionType = 'FOCUS' | 'BREAK';
 type TimerMode = 'pomodoro' | 'task'; // pomodoro: 기존 25/5분 모드, task: 태스크 시간 측정 모드
@@ -34,6 +40,8 @@ export const usePomodoro = (options?: UsePomodoroOptions) => {
 
     // Wear OS Sync Listener
     useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
         let listener: Promise<PluginListenerHandle> | null = null;
 
         const setupListener = async () => {

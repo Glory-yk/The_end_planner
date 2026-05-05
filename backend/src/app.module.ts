@@ -12,6 +12,7 @@ import { Mandalart } from './mandalart/entities/mandalart.entity';
 import { AppController } from './app.controller';
 import { ProjectsModule } from './projects/projects.module';
 import { Project } from './projects/entities/project.entity';
+import { SpeakingModule } from './speaking/speaking.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { Project } from './projects/entities/project.entity';
     MandalartModule,
     CalendarModule,
     ProjectsModule,
+    SpeakingModule,
   ],
   controllers: [AppController],
 })

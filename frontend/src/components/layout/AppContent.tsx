@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Hexagon, LogOut, Camera } from 'lucide-react';
+import { Calendar, Hexagon, LogOut, Camera, Mic } from 'lucide-react';
 import clsx from 'clsx';
 import { App as CapApp } from '@capacitor/app';
 import { format } from 'date-fns';
@@ -41,6 +41,9 @@ import { ProjectDetailView } from '@/components/projects/ProjectDetailView';
 import { CompletedTasksView } from '@/components/completed/CompletedTasksView';
 import { Project } from '@/api/projects/projects';
 
+// Speaking Practice
+import { SpeakingPractice } from '@/components/speaking/SpeakingPractice';
+
 // Pomodoro Components
 import { FloatingTimer } from '@/components/pomodoro/FloatingTimer';
 import { usePomodoro } from '@/hooks/usePomodoro';
@@ -49,7 +52,7 @@ import { ThemeSelector } from '@/components/common/ThemeSelector';
 // Auth Photo
 import { AuthPhotoScreen } from '@/components/auth/AuthPhotoScreen';
 
-type AppView = 'planner' | 'mandalart' | 'project' | 'completed';
+type AppView = 'planner' | 'mandalart' | 'project' | 'completed' | 'speaking';
 
 export const AppContent = () => {
     const { user, logout } = useAuth();
@@ -516,7 +519,7 @@ export const AppContent = () => {
 
                     <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-0 md:px-8">
                         <div className="max-w-5xl mx-auto w-full h-full pb-20">
-                            <AnimatePresence mode="wait">
+                            <AnimatePresence>
                                 {currentView === 'project' && selectedProject ? (
                                     <motion.div key="project" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
                                         <ProjectDetailView
@@ -527,6 +530,10 @@ export const AppContent = () => {
                                 ) : currentView === 'completed' ? (
                                     <motion.div key="completed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
                                         <CompletedTasksView />
+                                    </motion.div>
+                                ) : currentView === 'speaking' ? (
+                                    <motion.div key="speaking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
+                                        <SpeakingPractice />
                                     </motion.div>
                                 ) : currentView === 'planner' ? renderPlanner() : renderMandalart()}
                             </AnimatePresence>
@@ -560,6 +567,19 @@ export const AppContent = () => {
                                 >
                                     <Hexagon className="w-6 h-6" />
                                     <span className="text-[10px] font-medium">MANDALART</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setCurrentView('speaking')}
+                                    className={clsx(
+                                        "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors w-20",
+                                        currentView === 'speaking'
+                                            ? "text-primary bg-primary/10 dark:bg-primary/20"
+                                            : "text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                                    )}
+                                >
+                                    <Mic className="w-6 h-6" />
+                                    <span className="text-[10px] font-medium">SPEAK</span>
                                 </button>
 
                                 <button

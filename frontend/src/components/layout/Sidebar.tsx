@@ -4,7 +4,8 @@ import { useState } from 'react';
 import {
     Calendar, Hexagon, CheckSquare, LogOut, Moon, Sun,
     ChevronLeft, ChevronRight, LayoutGrid,
-    Plus, Edit2, Trash2, Check, X, GripVertical, Palette, CheckCircle2
+    Plus, Edit2, Trash2, Check, X, GripVertical, Palette, CheckCircle2,
+    Mic
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { clsx } from 'clsx';
@@ -16,7 +17,7 @@ import { CreateProjectModal } from '../projects/CreateProjectModal';
 import { Project } from '@/api/projects/projects';
 
 
-type AppView = 'planner' | 'mandalart' | 'project' | 'completed';
+type AppView = 'planner' | 'mandalart' | 'project' | 'completed' | 'speaking';
 
 interface SidebarProps {
     currentView: AppView;
@@ -182,6 +183,23 @@ export const Sidebar = ({
                     <CheckCircle2 className="w-5 h-5" />
                     {!isCollapsed && <span>완료된 할일</span>}
                 </button>
+
+                {/* Speaking Practice */}
+                <div className="mt-4 mb-2">
+                    {!isCollapsed && <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Practice</h3>}
+                    <button
+                        onClick={() => onViewChange('speaking')}
+                        className={clsx(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            currentView === 'speaking'
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        )}
+                    >
+                        <Mic className="w-5 h-5" />
+                        {!isCollapsed && <span>Speak With Me</span>}
+                    </button>
+                </div>
 
                 {/* Goals Section */}
                 <div className="mt-4 mb-2">
